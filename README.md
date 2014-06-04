@@ -12,10 +12,15 @@ Create a new instance of Alien::Libarchive::Installer.
 
 ## test\_compile\_run
 
-    if($installer->test_compile_run(%options))
+    my %options = ( extra_linker_flags = '-larchive' );
+    if($installer->test_compile_run(%options)
     {
       # You have a working Alien::Libarchive as
       # specified by %options
+    }
+    else
+    {
+      die $installer->error;
     }
 
 Tests the compiler to see if you can build and run
@@ -49,6 +54,28 @@ return the libarchive version.  Other options include
 ## error
 
 Returns the error from the previous call to [test\_compile\_run](https://metacpan.org/pod/Alien::Libarchive::Installer#test_compile_run).
+
+## fetch
+
+    my($location, $version) = $installer->fetch(%options);
+    my $location = $installer->fetch(%options);
+
+**NOTE:** using this method may (and probably does) require modules
+returned by the [build\_requires](https://metacpan.org/pod/Alien::Libarchive::Installer)
+method.
+
+Download libarchive source from the internet.  By default it will
+download the latest version to a temporary directory which will
+be removed when Perl exits.  Will throw an exception on
+failure.  Options include:
+
+- dir
+
+    Directory to download to
+
+- version
+
+    Version to download
 
 ## build\_requires
 
