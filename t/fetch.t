@@ -19,6 +19,7 @@ subtest 'specific version' => sub {
   my($location,$version) = eval { $installer->fetch(version => '3.1.1') };
   diag $@ if $@;
   ok -r $location, 'downloaded version 3.1.1';
+  note $location;
   is $version, '3.1.1', "download version 3.1.1 is version 3.1.1";
 };
 
@@ -27,5 +28,6 @@ subtest 'latest version' => sub {
   my($location,$version) = eval { $installer->fetch };
   diag $@ if $@;
   ok -r $location, 'downloaded latest';
+  note $location;
   like $version, qr{^[1-9][0-9]*(\.[0-9]*){2}$}, "download version latest is $version";
 };

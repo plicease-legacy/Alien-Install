@@ -221,6 +221,12 @@ sub fetch
     $versions[-1];
   };
 
+  if(defined $ENV{ALIEN_LIBARCHIVE_INSTALL_MIRROR})
+  {
+    my $fn = File::Spec->catfile($ENV{ALIEN_LIBARCHIVE_INSTALL_MIRROR}, "libarchive-$version.tar.gz");
+    return wantarray ? ($fn, $version) : $fn;
+  }
+
   my $url = "http://www.libarchive.org/downloads/libarchive-$version.tar.gz";
   
   my $response = HTTP::Tiny->new->get($url);
@@ -237,7 +243,167 @@ sub fetch
   print $fh $response->{content};
   close $fh;
   
-  ($fn, $version);
+  wantarray ? ($fn, $version) : $fn;
+}
+
+=head2 build_install
+
+ my %build = $installer->build_install( '/usr/local', %options );
+
+B<NOTE:> using this method may (and probably does) require modules
+returned by the L<build_requires|Alien::Libarchive::Installer>
+method.
+
+Build and install libarchive into the given directory.  If there
+is an error an exception will be thrown.  A hash with these fields
+will be returned on success:
+
+=over 4
+
+=item version
+
+=item extra_compiler_flags
+
+=item extra_linker_flags
+
+=back
+
+These options may be passed into build_install:
+
+=over 4
+
+=item tar
+
+Filename where the libarchive source tar is located.
+If not specified the latest version will be downloaded
+from the Internet.
+
+=item dir
+
+Empty directory to be used to extract the libarchive
+source and to build from.
+
+=back
+
+=cut
+
+sub _try_pkg_config
+{
+  my($dir, $field, $guess) = @_;
+  require Config;
+  local $ENV{PKG_CONFIG_PATH} = join $Config::Config{path_sep}, $dir, split /$Config::Config{path_sep}/, ($ENV{PKG_CONFIG_PATH}||'');
+  my $value = `pkg-config libarchive --$field`;
+  # TODO: try PkgConfig instead
+  return $guess if $?;
+  chomp $value;
+  require Text::ParseWords;
+  [Text::ParseWords::shellwords($value)];
+}
+
+sub build_install
+{
+  my($self, $prefix, %options) = @_;
+  
+  die "need an install prefix" unless $prefix;
+  
+  my $dir = $options{dir} || do { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
+  
+  require Archive::Tar;
+  my $tar = Archive::Tar->new;
+  $tar->read($options{tar} || $self->fetch);
+  
+  require Cwd;
+  my $save = Cwd::getcwd();
+  
+  chdir $dir;  
+  my $build = eval {
+  
+    $tar->extract;
+
+    chdir do {
+      opendir my $dh, '.';
+      my(@list) = grep !/^\./,readdir $dh;
+      close $dh;
+      die "unable to find source in build root" if @list == 0;
+      die "confused by multiple entries in the build root" if @list > 1;
+      $list[0];
+    };
+  
+    require Config;
+    my $make = $Config::Config{make};
+    
+    system 'sh', 'configure', "--prefix=$prefix", '--with-pic';
+    die "configure failed" if $?;
+    system $make, 'all';
+    die "make all failed" if $?;
+    system $make, 'install';
+    die "make install failed" if $?;
+
+    require File::Spec;
+
+    do {
+      my $static_dir = File::Spec->catdir($prefix, 'lib');
+      my $dll_dir    = File::Spec->catdir($prefix, 'dll');
+      require File::Path;
+      File::Path::mkpath($dll_dir, 0, 0755);
+      my $dh;
+      opendir $dh, $static_dir;
+      my @list = readdir $dh;
+      @list = grep { /\.so/ || /\.(dylib|la|dll)$/} grep !/^\./, @list;
+      closedir $dh;
+      foreach my $basename (@list)
+      {
+        require File::Copy;
+        File::Copy::move(
+          File::Spec->catfile($static_dir, $basename),
+          File::Spec->catfile($dll_dir,    $basename),
+        );
+      }
+    };
+
+    my $pkg_config_dir = File::Spec->catdir($prefix, 'lib', 'pkgconfig');
+    
+    my $pcfile = File::Spec->catfile($pkg_config_dir, 'libarchive.pc');
+    
+    do {
+      open my $fh, '<', $pcfile;
+      my @content = map { s{$prefix}{'${pcfiledir}/../..'}eg; $_ } do { <$fh> };
+      close $fh;
+      my($version) = map { /^Version:\s*(.*)$/; $1 } grep /^Version: /, @content;
+      
+      # older versions apparently didn't include the necessary -I and -L flags
+      if($version =~ /^[12]\./)
+      {
+        for(@content)
+        {
+          s/^Libs: /Libs: -L\${libdir} /;
+        }
+        push @content, "Cflags: -I\${includedir}\n";
+      }
+      
+      open $fh, '>', $pcfile;
+      print $fh @content;
+      close $fh;
+    };
+    
+    my $build = {};
+    
+    $build->{extra_compiler_flags} = _try_pkg_config($pkg_config_dir, 'cflags', '-I' . File::Spec->catdir($prefix, 'include'));
+    $build->{extra_linker_flags}   = _try_pkg_config($pkg_config_dir, 'libs',   '-L' . File::Spec->catdir($prefix, 'lib'));
+
+    require ExtUtils::CBuilder;
+    my $cbuilder = ExtUtils::CBuilder->new;
+    $build->{version} = $self->test_compile_run(
+      cbuilder => $cbuilder,
+      %$build,
+    ) || die $self->error;
+    $build;
+  };
+  
+  my $error = $@;
+  chdir $save;
+  die $error if $error;
+  $build;
 }
 
 =head2 build_requires

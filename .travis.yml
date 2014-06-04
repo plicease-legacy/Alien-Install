@@ -6,7 +6,7 @@ install:
   - cpanm -n Dist::Zilla
   - dzil authordeps --missing | cpanm -n
   - cpanm -n Test::CPAN::Changes Test::EOL Test::Fixme Test::NoTabs Test::Pod::Spelling::CommonMistakes Test::Spelling Test::Strict Test::Version Test::Vars || true
-  - cpanm Devel::CheckLib
+  - cpanm Devel::CheckLib AnyEvent::Open3::Simple
 
 perl:
   - "5.8"

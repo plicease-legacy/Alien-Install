@@ -77,6 +77,35 @@ failure.  Options include:
 
     Version to download
 
+## build\_install
+
+    my %build = $installer->build_install( '/usr/local', %options );
+
+**NOTE:** using this method may (and probably does) require modules
+returned by the [build\_requires](https://metacpan.org/pod/Alien::Libarchive::Installer)
+method.
+
+Build and install libarchive into the given directory.  If there
+is an error an exception will be thrown.  A hash with these fields
+will be returned on success:
+
+- version
+- extra\_compiler\_flags
+- extra\_linker\_flags
+
+These options may be passed into build\_install:
+
+- tar
+
+    Filename where the libarchive source tar is located.
+    If not specified the latest version will be downloaded
+    from the Internet.
+
+- dir
+
+    Empty directory to be used to extract the libarchive
+    source and to build from.
+
 ## build\_requires
 
     my $prereqs = $installer->build_requires;
