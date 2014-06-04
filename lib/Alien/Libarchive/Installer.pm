@@ -303,11 +303,24 @@ source and to build from.
 sub _try_pkg_config
 {
   my($dir, $field, $guess) = @_;
+  
   require Config;
   local $ENV{PKG_CONFIG_PATH} = join $Config::Config{path_sep}, $dir, split /$Config::Config{path_sep}/, ($ENV{PKG_CONFIG_PATH}||'');
-  my $value = `pkg-config libarchive --$field`;
-  # TODO: try PkgConfig instead
-  return $guess if $?;
+
+  my $value = eval {
+    # you probably think I am crazy...
+    eval q{ use PkgConfig 0.07620 };
+    die $@ if $@;
+    my $value = `$^X $INC{'PkgConfig.pm'} libarchive --$field`;
+    die if $?;
+    $value;
+  };
+
+  unless(defined $value) {
+    $value = `pkg-config libarchive --$field`;
+    return $guess if $?;
+  }
+  
   chomp $value;
   require Text::ParseWords;
   [Text::ParseWords::shellwords($value)];
