@@ -169,6 +169,29 @@ Returns the error from the previous call to L<test_compile_run|Alien::Libarchive
 
 sub error { shift->{error} }
 
+=head2 versions_available
+
+ my @versions = $installer->versions_available;
+
+Return the list of versions of libarchive available on the Internet.
+Will throw an exception if the libarchive.org website is unreachable.
+
+=cut
+
+sub versions_available
+{
+  require HTTP::Tiny;
+  my $url = "http://www.libarchive.org/downloads/";
+  my $response = HTTP::Tiny->new->get($url);
+  
+  die sprintf("%s %s %s", $response->{status}, $response->{reason}, $url)
+    unless $response->{success};
+
+  my @versions;
+  push @versions, [$1,$2,$3] while $response->{content} =~ /libarchive-([1-9][0-9]*)\.([0-9]+)\.([0-9]+)\.tar.gz/g;
+  @versions = map { join '.', @$_ } sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] || $a->[2] <=> $b->[2] } @versions;
+}
+
 =head2 fetch
 
  my($location, $version) = $installer->fetch(%options);
@@ -201,21 +224,11 @@ sub fetch
 {
   my($self, %options) = @_;
   
-  my $dir     = $options{dir} || eval { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
+  my $dir = $options{dir} || eval { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
 
   require HTTP::Tiny;  
   my $version = $options{version} || do {
-  
-    my $url = "http://www.libarchive.org/downloads/";
-    my $response = HTTP::Tiny->new->get($url);
-  
-    die sprintf("%s %s %s", $response->{status}, $response->{reason}, $url)
-      unless $response->{success};
-
-    my @versions;
-    push @versions, [$1,$2,$3] while $response->{content} =~ /libarchive-([1-9][0-9]*)\.([0-9]+)\.([0-9]+)\.tar.gz/g;
-    @versions = map { join '.', @$_ } sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] || $a->[2] <=> $b->[2] } @versions;
-    
+    my @versions = $self->versions_available;
     die "unable to determine latest version from listing"
       unless @versions > 0;
     $versions[-1];
