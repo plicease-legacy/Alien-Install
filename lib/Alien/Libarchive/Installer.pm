@@ -367,25 +367,28 @@ sub build_install
 
     require File::Spec;
 
-    do {
-      my $static_dir = File::Spec->catdir($prefix, 'lib');
-      my $dll_dir    = File::Spec->catdir($prefix, 'dll');
-      require File::Path;
-      File::Path::mkpath($dll_dir, 0, 0755);
-      my $dh;
-      opendir $dh, $static_dir;
-      my @list = readdir $dh;
-      @list = grep { /\.so/ || /\.(dylib|la|dll)$/} grep !/^\./, @list;
-      closedir $dh;
-      foreach my $basename (@list)
-      {
-        require File::Copy;
-        File::Copy::move(
-          File::Spec->catfile($static_dir, $basename),
-          File::Spec->catfile($dll_dir,    $basename),
-        );
-      }
-    };
+    foreach my $name ($^O =~ /^(MSWin32|cygwin)$/ ? ('bin','lib') : ('lib'))
+    {
+      do {
+        my $static_dir = File::Spec->catdir($prefix, $name);
+        my $dll_dir    = File::Spec->catdir($prefix, 'dll');
+        require File::Path;
+        File::Path::mkpath($dll_dir, 0, 0755);
+        my $dh;
+        opendir $dh, $static_dir;
+        my @list = readdir $dh;
+        @list = grep { /\.so/ || /\.(dylib|la|dll|dll\.a)$/} grep !/^\./, @list;
+        closedir $dh;
+        foreach my $basename (@list)
+        {
+          require File::Copy;
+          File::Copy::move(
+            File::Spec->catfile($static_dir, $basename),
+            File::Spec->catfile($dll_dir,    $basename),
+          );
+        }
+      };
+    }
 
     my $pkg_config_dir = File::Spec->catdir($prefix, 'lib', 'pkgconfig');
     
@@ -416,6 +419,11 @@ sub build_install
     
     $build->{extra_compiler_flags} = _try_pkg_config($pkg_config_dir, 'cflags', '-I' . File::Spec->catdir($prefix, 'include'));
     $build->{extra_linker_flags}   = _try_pkg_config($pkg_config_dir, 'libs',   '-L' . File::Spec->catdir($prefix, 'lib'));
+    
+    if($^O eq 'cygwin' || $^O eq 'MSWin32')
+    {
+      unshift @{ $build->{extra_compiler_flags} }, '-DLIBARCHIVE_STATIC';
+    }
 
     require ExtUtils::CBuilder;
     my $cbuilder = ExtUtils::CBuilder->new;

@@ -55,6 +55,7 @@ foreach my $version (qw( 3.1.2 3.0.4 2.8.4 ))
     my $build = eval { $installer->build_install( File::Spec->catdir($prefix, $version), tar => $tar ) };
     is $@, '', 'no error';
     SKIP: {
+      skip "can't test $build without a sucessful build", 4 if $@ ne '';
       is $build->{version}, $version,    "version = $version";
       ok $build->{extra_linker_flags},   "extra_linker_flags = ".   join(' ', @{ $build->{extra_linker_flags}   });
       ok $build->{extra_compiler_flags}, "extra_compiler_flags = ". join(' ', @{ $build->{extra_compiler_flags} });
