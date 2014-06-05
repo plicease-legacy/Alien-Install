@@ -55,6 +55,13 @@ return the libarchive version.  Other options include
 
 Returns the error from the previous call to [test\_compile\_run](https://metacpan.org/pod/Alien::Libarchive::Installer#test_compile_run).
 
+## versions\_available
+
+    my @versions = $installer->versions_available;
+
+Return the list of versions of libarchive available on the Internet.
+Will throw an exception if the libarchive.org website is unreachable.
+
 ## fetch
 
     my($location, $version) = $installer->fetch(%options);
