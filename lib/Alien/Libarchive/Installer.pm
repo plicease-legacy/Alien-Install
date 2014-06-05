@@ -317,7 +317,7 @@ sub _try_pkg_config
   };
 
   unless(defined $value) {
-    $value = `pkg-config libarchive --$field`;
+    $value = `pkg-config libarchive --static --$field`;
     return $guess if $?;
   }
   
@@ -326,11 +326,28 @@ sub _try_pkg_config
   [Text::ParseWords::shellwords($value)];
 }
 
+sub _msys
+{
+  my($sub) = @_;
+  require Config;
+  if($^O eq 'MSWin32')
+  {
+    if($Config::Config{cc} !~ /cl(\.exe)?$/i)
+    {
+      require Alien::MSYS;
+      return Alien::MSYS::msys(sub{ $sub->('make') });
+    }
+  }
+  $sub->($Config::Config{make});
+}
+
 sub build_install
 {
   my($self, $prefix, %options) = @_;
   
   die "need an install prefix" unless $prefix;
+  
+  $prefix =~ s{\\}{/}g;
   
   my $dir = $options{dir} || do { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
   
@@ -355,15 +372,15 @@ sub build_install
       $list[0];
     };
   
-    require Config;
-    my $make = $Config::Config{make};
-    
-    system 'sh', 'configure', "--prefix=$prefix", '--with-pic';
-    die "configure failed" if $?;
-    system $make, 'all';
-    die "make all failed" if $?;
-    system $make, 'install';
-    die "make install failed" if $?;
+    _msys(sub {
+      my($make) = @_;
+      system 'sh', 'configure', "--prefix=$prefix", '--with-pic';
+      die "configure failed" if $?;
+      system $make, 'all';
+      die "make all failed" if $?;
+      system $make, 'install';
+      die "make install failed" if $?;
+    });
 
     require File::Spec;
 
@@ -451,6 +468,9 @@ sub build_install
 Returns a hash reference of the build requirements.  The
 keys are the module names and the values are the versions.
 
+The requirements may be different depending on your
+platform.
+
 =cut
 
 sub build_requires
@@ -463,13 +483,14 @@ sub build_requires
   if($^O eq 'MSWin32')
   {
     require Config;
-    if($Config::Config{cc} =~ /cl(\.exe)?$/i || $Config::Config{ld} =~ /link(\.exe)?$/i)
+    if($Config::Config{cc} =~ /cl(\.exe)?$/i)
     {
       $prereqs{'Alien::CMake'} = '0.05';
     }
     else
     {
       $prereqs{'Alien::MSYS'} = '0,07';
+      $prereqs{'PkgConfig'}   = '0.07620';
     }
   }
   

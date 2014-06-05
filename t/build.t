@@ -13,30 +13,40 @@ BEGIN {
     unless eval q{ use AE; use AnyEvent::Open3::Simple; 1 };
 }
 
-BEGIN {   
-  *CORE::GLOBAL::system = sub {
-    my $done = AE::cv;
-    my $ipc = AnyEvent::Open3::Simple->new(
-      on_stdout => sub {
-        my($proc,$line) = @_;
-        note("stdout: $line");
-      },
-      on_stderr => sub {
-        my($proc,$line) = @_;
-        note "stderr: $line";
-      },
-      on_exit => sub {
-        my($proc,$exit,$sig) = @_;
-        $done->send($exit << 8 | $sig);
-      },
-      on_error => sub {
-        $done->send(-1);
-      },
-    );
-    note "% @_";
-    $ipc->run(@_);
-    $? = $done->recv;
-  };
+BEGIN {
+  if($^O eq 'MSWin32')
+  {
+    *CORE::GLOBAL::system = sub {
+      note "% @_";
+      CORE::system(@_);
+    };
+  }
+  else
+  {
+    *CORE::GLOBAL::system = sub {
+      my $done = AE::cv;
+      my $ipc = AnyEvent::Open3::Simple->new(
+        on_stdout => sub {
+          my($proc,$line) = @_;
+          note("stdout: $line");
+        },
+        on_stderr => sub {
+          my($proc,$line) = @_;
+          note "stderr: $line";
+        },
+        on_exit => sub {
+          my($proc,$exit,$sig) = @_;
+          $done->send($exit << 8 | $sig);
+        },
+        on_error => sub {
+          $done->send(-1);
+        },
+      );
+      note "% @_";
+      $ipc->run(@_);
+      $? = $done->recv;
+    };
+  }
 }
 
 use Alien::Libarchive::Installer;
@@ -50,6 +60,8 @@ my $installer = Alien::Libarchive::Installer->new;
 foreach my $version (qw( 3.1.2 3.0.4 2.8.4 ))
 {
   subtest "build version $version" => sub {
+    plan skip_all => 'this version does not work on this platform'
+      if $^O eq 'MSWin32' && $version eq '2.8.4';
     plan tests => 5;
     my $tar = $installer->fetch( version => $version );
     my $build = eval { $installer->build_install( File::Spec->catdir($prefix, $version), tar => $tar ) };
