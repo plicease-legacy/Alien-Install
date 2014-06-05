@@ -374,8 +374,25 @@ sub build_install
   
     _msys(sub {
       my($make) = @_;
-      system 'sh', 'configure', "--prefix=$prefix", '--with-pic';
-      die "configure failed" if $?;
+      require Config;
+      if($Config::Config{cc} !~ /cl(\.exe)?$/i)
+      {
+        system 'sh', 'configure', "--prefix=$prefix", '--with-pic';
+        die "configure failed" if $?;
+      }
+      else
+      {
+        require Alien::CMake;
+        my $cmake = Alien::CMake->config('prefix') . '/bin/cmake.exe';
+        my $system = $make =~ /nmake(\.exe)?$/ ? 'NMake Makefiles' : 'MinGW Makefiles';
+        system $cmake,
+          -G => $system,
+          "-DCMAKE_MAKE_PROGRAM:PATH=$make",
+          "-DCMAKE_INSTALL_PREFIX:PATH=$prefix",
+          "-DENABLE_TEST=OFF",
+          ".";
+        die "cmake failed" if $?;
+      }
       system $make, 'all';
       die "make all failed" if $?;
       system $make, 'install';
@@ -412,13 +429,35 @@ sub build_install
     my $pcfile = File::Spec->catfile($pkg_config_dir, 'libarchive.pc');
     
     do {
-      open my $fh, '<', $pcfile;
-      my @content = map { s{$prefix}{'${pcfiledir}/../..'}eg; $_ } do { <$fh> };
-      close $fh;
-      my($version) = map { /^Version:\s*(.*)$/; $1 } grep /^Version: /, @content;
+      my @content;
+      if($Config::Config{cc} !~ /cl(\.exe)?$/i)
+      {
+        open my $fh, '<', $pcfile;
+        @content = map { s{$prefix}{'${pcfiledir}/../..'}eg; $_ } do { <$fh> };
+        close $fh;
+      }
+      else
+      {
+        # TODO: later when we know the version with more
+        # certainty, we can update this file with the
+        # Version
+        @content = join "\n", "prefix=\${pcfiledir}/../..",
+                              "exec_prefix=\${prefix}",
+                              "libdir=\${exec_prefix}/lib",
+                              "includedir=\${prefix}/include",
+                              "Name: libarchive",
+                              "Description: library that can create and read several streaming archive formats",
+                              "Cflags: -I\${includedir}",
+                              "Libs: \${libdir}/archive_static.lib",
+                              "Libs.private: ",
+                              "";
+        require File::Path;
+        File::Path::mkpath($pkg_config_dir, 0, 0755);
+      }
       
+      my($version) = map { /^Version:\s*(.*)$/; $1 } grep /^Version: /, @content;
       # older versions apparently didn't include the necessary -I and -L flags
-      if($version =~ /^[12]\./)
+      if(defined $version && $version =~ /^[12]\./)
       {
         for(@content)
         {
@@ -427,7 +466,7 @@ sub build_install
         push @content, "Cflags: -I\${includedir}\n";
       }
       
-      open $fh, '>', $pcfile;
+      open my $fh, '>', $pcfile;
       print $fh @content;
       close $fh;
     };
@@ -439,6 +478,7 @@ sub build_install
     
     if($^O eq 'cygwin' || $^O eq 'MSWin32')
     {
+      # TODO: should this go in the munged pc file?
       unshift @{ $build->{extra_compiler_flags} }, '-DLIBARCHIVE_STATIC';
     }
 

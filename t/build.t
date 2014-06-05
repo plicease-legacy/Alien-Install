@@ -3,6 +3,7 @@ use warnings;
 use Test::More;
 use File::Temp qw( tempdir );
 use File::Spec;
+use Config;
 
 BEGIN {
   plan skip_all => "set ALIEN_LIBARCHIVE_INSTALLER_EXTRA_TESTS to run test"
@@ -61,7 +62,8 @@ foreach my $version (qw( 3.1.2 3.0.4 2.8.4 ))
 {
   subtest "build version $version" => sub {
     plan skip_all => 'this version does not work on this platform'
-      if $^O eq 'MSWin32' && $version eq '2.8.4';
+      if(($^O eq 'MSWin32' && $version eq '2.8.4')
+      || ($^O eq 'MSWin32' && $Config{cc} =~ /cl(\.exe)?$/ && $version eq '3.0.4'));
     plan tests => 5;
     my $tar = $installer->fetch( version => $version );
     my $build = eval { $installer->build_install( File::Spec->catdir($prefix, $version), tar => $tar ) };
