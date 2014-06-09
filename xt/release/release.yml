@@ -8,6 +8,9 @@ pod_spelling_system:
     - libarchive
     - cflags
     - libs
+    - DLL
+    - dlls
+    - ffi
 
 pod_coverage:
   skip: 0

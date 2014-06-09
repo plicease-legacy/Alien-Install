@@ -63,7 +63,7 @@ foreach my $version (qw( 3.1.2 3.0.4 2.8.4 ))
       if $^O eq 'MSWin32' && $version eq '2.8.4' && $Config{cc} !~ /cl(\.exe)?$/;
     plan tests => 5;
     my $tar = Alien::Libarchive::Installer->fetch( version => $version );
-    my $installer = eval { Alien::Libarchive::Installer->build_install( File::Spec->catdir($prefix, $version), tar => $tar ) };
+    my $installer = eval { Alien::Libarchive::Installer->build_install( File::Spec->catdir($prefix, $version), tar => $tar, test => 'both' ) };
     is $@, '', 'no error';
     SKIP: {
       skip "can't test \$installer without a sucessful build", 4 if $@ ne '';

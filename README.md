@@ -150,6 +150,29 @@ These options may be passed into build\_install:
     Empty directory to be used to extract the libarchive
     source and to build from.
 
+- test
+
+    Specifies the test type that should be used to verify the integrity
+    of the build after it has been installed.  Generally this should be
+    set according to the needs of your module.  Should be one of:
+
+    - compile
+
+        use [test\_compile\_run](https://metacpan.org/pod/Alien::Libarchive::Installer#test_compile_run) to verify.
+        This is the default.
+
+    - ffi
+
+        use [test\_ffi](https://metacpan.org/pod/Alien::Libarchive::Installer#test_ffi) to verify
+
+    - both
+
+        use both
+        [test\_compile\_run](https://metacpan.org/pod/Alien::Libarchive::Installer#test_compile_run)
+        and
+        [test\_ffi](https://metacpan.org/pod/Alien::Libarchive::Installer#test_ffi)
+        to verify
+
 # ATTRIBUTES
 
 Attributes of an [Alien::Libarchive::Installer](https://metacpan.org/pod/Alien::Libarchive::Installer) provide the
@@ -164,6 +187,11 @@ The compiler flags required to use libarchive.
 ## libs
 
 The linker flags and libraries required to use libarchive.
+
+## dlls
+
+List of DLL or .so (or other dynamic library) files that can
+be used by [FFI::Raw](https://metacpan.org/pod/FFI::Raw) or similar.
 
 ## version
 
@@ -199,9 +227,36 @@ return the libarchive version.  Other options include
     If not specified, a temporary directory will be
     created and removed when Perl terminates.
 
+## test\_ffi
+
+    if($installer->test_ffi(%options))
+    {
+      # You have a working Alien::Libarchive as
+      # specified by %options
+    }
+    else
+    {
+      die $installer->error;
+    }
+
+Test libarchive to see if it can be used with [FFI::Raw](https://metacpan.org/pod/FFI::Raw)
+(or similar).  On success it will return the libarchive
+version.
+
 ## error
 
-Returns the error from the previous call to [test\_compile\_run](https://metacpan.org/pod/Alien::Libarchive::Installer#test_compile_run).
+Returns the error from the previous call to [test\_compile\_run](https://metacpan.org/pod/Alien::Libarchive::Installer#test_compile_run)
+or [test\_ffi](https://metacpan.org/pod/Alien::Libarchive::Installer#test_ffi).
+
+# SEE ALSO
+
+- [Alien::Libarchive](https://metacpan.org/pod/Alien::Libarchive)
+- [Archive::Libarchive::XS](https://metacpan.org/pod/Archive::Libarchive::XS)
+- [Archive::Libarchive::FFI](https://metacpan.org/pod/Archive::Libarchive::FFI)
+- [Archive::Libarchive::Any](https://metacpan.org/pod/Archive::Libarchive::Any)
+- [Archive::Ar::Libarchive](https://metacpan.org/pod/Archive::Ar::Libarchive)
+- [Archive::Peek::Libarchive](https://metacpan.org/pod/Archive::Peek::Libarchive)
+- [Archive::Extract::Libarchive](https://metacpan.org/pod/Archive::Extract::Libarchive)
 
 # AUTHOR
 

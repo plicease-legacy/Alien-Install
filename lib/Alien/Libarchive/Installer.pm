@@ -47,6 +47,15 @@ Build.PL
  );
  $build->create_build_script;
 
+FFI::Raw
+
+ # as an optional dep
+ use Alien::Libarchive::Installer;
+ use FFI::Raw;
+ 
+ my($dll) = Alien::Libarchive::Installer->system_install->dlls;
+ FFI::Raw->new($dll, 'archive_read_new', FFI::Raw::ptr);
+
 =head1 DESCRIPTION
 
 This distribution contains the logic for finding existing libarchive
@@ -269,6 +278,33 @@ from the Internet.
 Empty directory to be used to extract the libarchive
 source and to build from.
 
+=item test
+
+Specifies the test type that should be used to verify the integrity
+of the build after it has been installed.  Generally this should be
+set according to the needs of your module.  Should be one of:
+
+=over 4
+
+=item compile
+
+use L<test_compile_run|Alien::Libarchive::Installer#test_compile_run> to verify.
+This is the default.
+
+=item ffi
+
+use L<test_ffi|Alien::Libarchive::Installer#test_ffi> to verify
+
+=item both
+
+use both
+L<test_compile_run|Alien::Libarchive::Installer#test_compile_run>
+and
+L<test_ffi|Alien::Libarchive::Installer#test_ffi>
+to verify
+
+=back
+
 =back
 
 =cut
@@ -324,6 +360,10 @@ sub build_install
 {
   my($class, $prefix, %options) = @_;
   
+  $options{test} ||= 'compile';
+
+  die "test must be one of compile, ffi or both"
+    unless $options{test} =~ /^(compile|ffi|both)$/;
   die "need an install prefix" unless $prefix;
   
   $prefix =~ s{\\}{/}g;
@@ -451,8 +491,14 @@ sub build_install
     };
     
     my $build = bless {
-      cflags => _try_pkg_config($pkg_config_dir, 'cflags', '-I' . File::Spec->catdir($prefix, 'include'), '--static'),
-      libs   => _try_pkg_config($pkg_config_dir, 'libs',   '-L' . File::Spec->catdir($prefix, 'lib'),     '--static'),
+      cflags  => _try_pkg_config($pkg_config_dir, 'cflags', '-I' . File::Spec->catdir($prefix, 'include'), '--static'),
+      libs    => _try_pkg_config($pkg_config_dir, 'libs',   '-L' . File::Spec->catdir($prefix, 'lib'),     '--static'),
+      prefix  => $prefix,
+      dll_dir => [ 'dll' ],
+      dlls    => do {
+        opendir(my $dh, File::Spec->catdir($prefix, 'dll'));
+        [grep { ! -l File::Spec->catfile($prefix, 'dll', $_) } grep { /\.so/ || /\.(dll|dylib)$/ } grep !/^\./, readdir $dh];
+      },
     }, $class;
     
     if($^O eq 'cygwin' || $^O eq 'MSWin32')
@@ -461,7 +507,8 @@ sub build_install
       unshift @{ $build->{cflags} }, '-DLIBARCHIVE_STATIC';
     }
 
-    $build->test_compile_run || die $build->error;
+    $build->test_compile_run || die $build->error if $options{test} =~ /^(compile|both)$/;
+    $build->test_ffi         || die $build->error if $options{test} =~ /^(ffi|both)$/;
     $build;
   };
   
@@ -486,6 +533,11 @@ The compiler flags required to use libarchive.
 
 The linker flags and libraries required to use libarchive.
 
+=head2 dlls
+
+List of DLL or .so (or other dynamic library) files that can
+be used by L<FFI::Raw> or similar.
+
 =head2 version
 
 The version of libarchive
@@ -495,6 +547,28 @@ The version of libarchive
 sub cflags  { shift->{cflags}  }
 sub libs    { shift->{libs}    }
 sub version { shift->{version} }
+
+sub dlls
+{
+  my($self, $prefix) = @_;
+  
+  $prefix = $self->{prefix} unless defined $prefix;
+  
+  unless(defined $self->{dlls} && defined $self->{dll_dir})
+  {
+    require DynaLoader;
+    my $path = DynaLoader::dl_findfile(grep /^-l/, @{ $self->libs });
+    die "unable to find dynamic library" unless defined $path;
+    require File::Spec;
+    my($vol, $dirs, $file) = File::Spec->splitpath($path);
+    $self->{dlls}    = [ $file ];
+    $self->{dll_dir} = [];
+    $prefix = File::Spec->catpath($vol, $dirs);
+  }
+  
+  require File::Spec;
+  map { File::Spec->catfile($prefix, @{ $self->{dll_dir} }, $_ ) } @{ $self->{dlls} };
+}
 
 =head1 INSTANCE METHODS
 
@@ -623,12 +697,75 @@ sub test_compile_run
   }
 }
 
+=head2 test_ffi
+
+ if($installer->test_ffi(%options))
+ {
+   # You have a working Alien::Libarchive as
+   # specified by %options
+ }
+ else
+ {
+   die $installer->error;
+ }
+
+Test libarchive to see if it can be used with L<FFI::Raw>
+(or similar).  On success it will return the libarchive
+version.
+
+=cut
+
+sub test_ffi
+{
+  my($self) = @_;
+  require FFI::Raw;
+
+  foreach my $dll ($self->dlls)
+  {
+    my $archive_version_number = eval {
+      FFI::Raw->new(
+        $dll, 'archive_version_number',
+        FFI::Raw::int(),
+      );
+    };
+    next if $@;
+    if($archive_version_number->() =~ /^([0-9]+)([0-9]{3})([0-9]{3})/)
+    {
+      return $self->{version} = join '.', map { int } $1, $2, $3;
+    }
+  }
+  return; 
+}
+
 =head2 error
 
-Returns the error from the previous call to L<test_compile_run|Alien::Libarchive::Installer#test_compile_run>.
+Returns the error from the previous call to L<test_compile_run|Alien::Libarchive::Installer#test_compile_run>
+or L<test_ffi|Alien::Libarchive::Installer#test_ffi>.
 
 =cut
 
 sub error { shift->{error} }
 
 1;
+
+=head1 SEE ALSO
+
+=over 4
+
+=item L<Alien::Libarchive>
+
+=item L<Archive::Libarchive::XS>
+
+=item L<Archive::Libarchive::FFI>
+
+=item L<Archive::Libarchive::Any>
+
+=item L<Archive::Ar::Libarchive>
+
+=item L<Archive::Peek::Libarchive>
+
+=item L<Archive::Extract::Libarchive>
+
+=back
+
+=cut
