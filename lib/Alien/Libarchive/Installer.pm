@@ -149,6 +149,45 @@ sub build_requires
   \%prereqs;
 }
 
+=head2 system_requires
+
+This is like L<build_requires|Alien::Libarchive::Installer#build_requires>,
+except it is used when using the libarchive that comes with the operating
+system.
+
+=cut
+
+sub system_requirements
+{
+  my %prereqs = ();
+  \%prereqs;
+}
+
+=head2 system_install
+
+ my $installer = Alien::Libarchive::Installer->system_install;
+
+B<NOTE:> using this method may require modules returned by the
+L<system_requires|Alien::Libarchive::Installer> method.
+
+=cut
+
+sub system_install
+{
+  my($class) = @_;
+
+  # TODO: Also try Alien::Libarchive in case it is already installed.
+  # probably making sure that the version is 0.19 or better...
+  
+  my $build = bless {
+    cflags => _try_pkg_config(undef, 'cflags', '', ''),
+    libs   => _try_pkg_config(undef, 'libs',   '-larchive', ''),
+  }, $class;
+  
+  die $build->error unless $build->test_compile_run;
+  $build;
+}
+
 =head2 build_install
 
  my $installer = Alien::Libarchive::Installer->build_install( '/usr/local', %options );
@@ -182,7 +221,13 @@ source and to build from.
 
 sub _try_pkg_config
 {
-  my($dir, $field, $guess) = @_;
+  my($dir, $field, $guess, $extra) = @_;
+  
+  unless(defined $dir)
+  {
+    require File::Temp;
+    $dir = File::Temp::tempdir(CLEANUP => 1);
+  }
   
   require Config;
   local $ENV{PKG_CONFIG_PATH} = join $Config::Config{path_sep}, $dir, split /$Config::Config{path_sep}/, ($ENV{PKG_CONFIG_PATH}||'');
@@ -197,7 +242,7 @@ sub _try_pkg_config
   };
 
   unless(defined $value) {
-    $value = `pkg-config libarchive --static --$field`;
+    $value = `pkg-config libarchive $extra --$field`;
     return $guess if $?;
   }
   
@@ -351,10 +396,10 @@ sub build_install
       close $fh;
     };
     
-    my $build = bless {}, $class;
-    
-    $build->{cflags} = _try_pkg_config($pkg_config_dir, 'cflags', '-I' . File::Spec->catdir($prefix, 'include'));
-    $build->{libs}   = _try_pkg_config($pkg_config_dir, 'libs',   '-L' . File::Spec->catdir($prefix, 'lib'));
+    my $build = bless {
+      cflags => _try_pkg_config($pkg_config_dir, 'cflags', '-I' . File::Spec->catdir($prefix, 'include'), '--static'),
+      libs   => _try_pkg_config($pkg_config_dir, 'libs',   '-L' . File::Spec->catdir($prefix, 'lib'),     '--static'),
+    }, $class;
     
     if($^O eq 'cygwin' || $^O eq 'MSWin32')
     {
@@ -362,12 +407,7 @@ sub build_install
       unshift @{ $build->{cflags} }, '-DLIBARCHIVE_STATIC';
     }
 
-    require ExtUtils::CBuilder;
-    my $cbuilder = ExtUtils::CBuilder->new;
-    $build->{version} = $build->test_compile_run(
-      cbuilder => $cbuilder,
-      %$build,
-    ) || die $build->error;
+    $build->test_compile_run || die $build->error;
     $build;
   };
   
@@ -403,21 +443,6 @@ sub libs    { shift->{libs}    }
 sub version { shift->{version} }
 
 =head1 INSTANCE METHODS
-
-=head2 new
-
- my $installer = Alien::Libarchive::Installer->new;
-
-Create a new instance of Alien::Libarchive::Installer.
-
-=cut
-
-sub new
-{
-  my($class) = @_;
-  my $self = bless {}, $class;
-  $self;
-}
 
 =head2 test_compile_run
 
@@ -535,7 +560,7 @@ sub test_compile_run
   
   if($output =~ /version = '([0-9]+)([0-9]{3})([0-9]{3})'/)
   {
-    return join '.', map { int } $1, $2, $3;
+    return $self->{version} = join '.', map { int } $1, $2, $3;
   }
   else
   {
