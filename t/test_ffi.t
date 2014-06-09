@@ -5,6 +5,8 @@ use Test::More;
 use Alien::Libarchive::Installer;
 use DynaLoader;
 
+plan skip_all => 'test requires FFI::Raw'
+  unless eval { require FFI::Raw };
 plan skip_all => 'test requires dynamic libarchive'
   unless defined DynaLoader::dl_findfile('-larchive');
 
