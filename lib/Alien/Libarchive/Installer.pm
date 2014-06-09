@@ -448,7 +448,7 @@ sub build_install
                               "Name: libarchive",
                               "Description: library that can create and read several streaming archive formats",
                               "Cflags: -I\${includedir}",
-                              "Libs: \${libdir}/archive_static.lib",
+                              "Libs: advapi32.lib \${libdir}/archive_static.lib",
                               "Libs.private: ",
                               "";
         require File::Path;
