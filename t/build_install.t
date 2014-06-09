@@ -65,7 +65,7 @@ foreach my $version (qw( 3.1.2 3.0.4 2.8.4 ))
     plan skip_all => 'this version does not work on this platform'
       if $^O eq 'MSWin32' && $version eq '2.8.4' && $Config{cc} !~ /cl(\.exe)?$/;
     plan tests => 5;
-    my $tar = $installer->fetch( version => $version );
+    my $tar = Alien::Libarchive::Installer->fetch( version => $version );
     my $build = eval { $installer->build_install( File::Spec->catdir($prefix, $version), tar => $tar ) };
     is $@, '', 'no error';
     SKIP: {

@@ -12,11 +12,9 @@ BEGIN {
 
 plan tests => 2;
 
-my $installer = Alien::Libarchive::Installer->new;
-
 subtest 'specific version' => sub {
   plan tests => 2;
-  my($location,$version) = eval { $installer->fetch(version => '3.1.1') };
+  my($location,$version) = eval { Alien::Libarchive::Installer->fetch(version => '3.1.1') };
   diag $@ if $@;
   ok -r $location, 'downloaded version 3.1.1';
   note $location;
@@ -25,7 +23,7 @@ subtest 'specific version' => sub {
 
 subtest 'latest version' => sub {
   plan tests => 2;
-  my($location,$version) = eval { $installer->fetch };
+  my($location,$version) = eval { Alien::Libarchive::Installer->fetch };
   diag $@ if $@;
   ok -r $location, 'downloaded latest';
   note $location;

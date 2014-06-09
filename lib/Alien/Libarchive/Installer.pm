@@ -6,7 +6,150 @@ use warnings;
 # ABSTRACT: Installer for libarchive
 # VERSION
 
-=head1 METHODS
+=head1 CLASS METHODS
+
+Class methods can be executed without creating an instance of
+L<Alien::libarchive::Installer>, and generally used to query
+status of libarchive availablity (either via the system or the
+internet).  Methods that discover a system libarchive or build
+a one from source code on the Internet will generally return
+an instance of L<Alien::Libarchive::Installer> which can be
+queried to retrieve the settings needed to interact with 
+libarchive via XS or L<FFI::Raw>.
+
+=head2 versions_available
+
+ my @versions = Alien::Libarchive::Installer->versions_available;
+ my $latest_version = $versions[-1];
+
+Return the list of versions of libarchive available on the Internet.
+Will throw an exception if the libarchive.org website is unreachable.
+Versions will be sorted from oldest (smallest) to newest (largest).
+
+=cut
+
+sub versions_available
+{
+  require HTTP::Tiny;
+  my $url = "http://www.libarchive.org/downloads/";
+  my $response = HTTP::Tiny->new->get($url);
+  
+  die sprintf("%s %s %s", $response->{status}, $response->{reason}, $url)
+    unless $response->{success};
+
+  my @versions;
+  push @versions, [$1,$2,$3] while $response->{content} =~ /libarchive-([1-9][0-9]*)\.([0-9]+)\.([0-9]+)\.tar.gz/g;
+  @versions = map { join '.', @$_ } sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] || $a->[2] <=> $b->[2] } @versions;
+}
+
+=head2 fetch
+
+ my($location, $version) = Alien::Libarchive::Installer->fetch(%options);
+ my $location = Alien::Libarchive::Installer->fetch(%options);
+
+B<NOTE:> using this method may (and probably does) require modules
+returned by the L<build_requires|Alien::Libarchive::Installer>
+method.
+
+Download libarchive source from the internet.  By default it will
+download the latest version to a temporary directory which will
+be removed when Perl exits.  Will throw an exception on
+failure.  Options include:
+
+=over 4
+
+=item dir
+
+Directory to download to
+
+=item version
+
+Version to download
+
+=back
+
+=cut
+
+sub fetch
+{
+  my($class, %options) = @_;
+  
+  my $dir = $options{dir} || eval { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
+
+  require HTTP::Tiny;  
+  my $version = $options{version} || do {
+    my @versions = $class->versions_available;
+    die "unable to determine latest version from listing"
+      unless @versions > 0;
+    $versions[-1];
+  };
+
+  if(defined $ENV{ALIEN_LIBARCHIVE_INSTALL_MIRROR})
+  {
+    my $fn = File::Spec->catfile($ENV{ALIEN_LIBARCHIVE_INSTALL_MIRROR}, "libarchive-$version.tar.gz");
+    return wantarray ? ($fn, $version) : $fn;
+  }
+
+  my $url = "http://www.libarchive.org/downloads/libarchive-$version.tar.gz";
+  
+  my $response = HTTP::Tiny->new->get($url);
+  
+  die sprintf("%s %s %s", $response->{status}, $response->{reason}, $url)
+    unless $response->{success};
+  
+  require File::Spec;
+  
+  my $fn = File::Spec->catfile($dir, "libarchive-$version.tar.gz");
+  
+  open my $fh, '>', $fn;
+  binmode $fh;
+  print $fh $response->{content};
+  close $fh;
+  
+  wantarray ? ($fn, $version) : $fn;
+}
+
+=head2 build_requires
+
+ my $prereqs = Alien::Libarchive::Installer->build_requires;
+ while(my($module, $version) = each %$prereqs)
+ {
+   ...
+ }
+
+Returns a hash reference of the build requirements.  The
+keys are the module names and the values are the versions.
+
+The requirements may be different depending on your
+platform.
+
+=cut
+
+sub build_requires
+{
+  my %prereqs = (
+    'HTTP::Tiny'   => 0,
+    'Archive::Tar' => 0,
+  );
+  
+  if($^O eq 'MSWin32')
+  {
+    require Config;
+    if($Config::Config{cc} =~ /cl(\.exe)?$/i)
+    {
+      $prereqs{'Alien::CMake'} = '0.05';
+    }
+    else
+    {
+      $prereqs{'Alien::MSYS'} = '0,07';
+      $prereqs{'PkgConfig'}   = '0.07620';
+    }
+  }
+  
+  \%prereqs;
+}
+
+=head1 INSTANCE METHODS
 
 =head2 new
 
@@ -168,96 +311,6 @@ Returns the error from the previous call to L<test_compile_run|Alien::Libarchive
 =cut
 
 sub error { shift->{error} }
-
-=head2 versions_available
-
- my @versions = $installer->versions_available;
-
-Return the list of versions of libarchive available on the Internet.
-Will throw an exception if the libarchive.org website is unreachable.
-
-=cut
-
-sub versions_available
-{
-  require HTTP::Tiny;
-  my $url = "http://www.libarchive.org/downloads/";
-  my $response = HTTP::Tiny->new->get($url);
-  
-  die sprintf("%s %s %s", $response->{status}, $response->{reason}, $url)
-    unless $response->{success};
-
-  my @versions;
-  push @versions, [$1,$2,$3] while $response->{content} =~ /libarchive-([1-9][0-9]*)\.([0-9]+)\.([0-9]+)\.tar.gz/g;
-  @versions = map { join '.', @$_ } sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] || $a->[2] <=> $b->[2] } @versions;
-}
-
-=head2 fetch
-
- my($location, $version) = $installer->fetch(%options);
- my $location = $installer->fetch(%options);
-
-B<NOTE:> using this method may (and probably does) require modules
-returned by the L<build_requires|Alien::Libarchive::Installer>
-method.
-
-Download libarchive source from the internet.  By default it will
-download the latest version to a temporary directory which will
-be removed when Perl exits.  Will throw an exception on
-failure.  Options include:
-
-=over 4
-
-=item dir
-
-Directory to download to
-
-=item version
-
-Version to download
-
-=back
-
-=cut
-
-sub fetch
-{
-  my($self, %options) = @_;
-  
-  my $dir = $options{dir} || eval { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
-
-  require HTTP::Tiny;  
-  my $version = $options{version} || do {
-    my @versions = $self->versions_available;
-    die "unable to determine latest version from listing"
-      unless @versions > 0;
-    $versions[-1];
-  };
-
-  if(defined $ENV{ALIEN_LIBARCHIVE_INSTALL_MIRROR})
-  {
-    my $fn = File::Spec->catfile($ENV{ALIEN_LIBARCHIVE_INSTALL_MIRROR}, "libarchive-$version.tar.gz");
-    return wantarray ? ($fn, $version) : $fn;
-  }
-
-  my $url = "http://www.libarchive.org/downloads/libarchive-$version.tar.gz";
-  
-  my $response = HTTP::Tiny->new->get($url);
-  
-  die sprintf("%s %s %s", $response->{status}, $response->{reason}, $url)
-    unless $response->{success};
-  
-  require File::Spec;
-  
-  my $fn = File::Spec->catfile($dir, "libarchive-$version.tar.gz");
-  
-  open my $fh, '>', $fn;
-  binmode $fh;
-  print $fh $response->{content};
-  close $fh;
-  
-  wantarray ? ($fn, $version) : $fn;
-}
 
 =head2 build_install
 
@@ -495,46 +548,6 @@ sub build_install
   chdir $save;
   die $error if $error;
   $build;
-}
-
-=head2 build_requires
-
- my $prereqs = $installer->build_requires;
- while(my($module, $version) = each %$prereqs)
- {
-   ...
- }
-
-Returns a hash reference of the build requirements.  The
-keys are the module names and the values are the versions.
-
-The requirements may be different depending on your
-platform.
-
-=cut
-
-sub build_requires
-{
-  my %prereqs = {
-    'HTTP::Tiny' =>   0,
-    'Archive::Tar' => 0,
-  };
-  
-  if($^O eq 'MSWin32')
-  {
-    require Config;
-    if($Config::Config{cc} =~ /cl(\.exe)?$/i)
-    {
-      $prereqs{'Alien::CMake'} = '0.05';
-    }
-    else
-    {
-      $prereqs{'Alien::MSYS'} = '0,07';
-      $prereqs{'PkgConfig'}   = '0.07620';
-    }
-  }
-  
-  \%prereqs;
 }
 
 1;
