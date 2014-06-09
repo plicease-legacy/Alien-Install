@@ -149,190 +149,17 @@ sub build_requires
   \%prereqs;
 }
 
-=head1 INSTANCE METHODS
-
-=head2 new
-
- my $installer = Alien::Libarchive::Installer->new;
-
-Create a new instance of Alien::Libarchive::Installer.
-
-=cut
-
-sub new
-{
-  my($class) = @_;
-  my $self = bless {}, $class;
-  $self;
-}
-
-=head2 test_compile_run
-
- my %options = ( extra_linker_flags = '-larchive' );
- if($installer->test_compile_run(%options)
- {
-   # You have a working Alien::Libarchive as
-   # specified by %options
- }
- else
- {
-   die $installer->error;
- }
-
-Tests the compiler to see if you can build and run
-a simple libarchive program.  On success it will 
-return the libarchive version.  Other options include
-
-=over 4
-
-=item cbuilder
-
-The L<ExtUtils::CBuilder> instance that you want
-to use.  If not specified, then a new one will
-be created.
-
-=item dir
-
-Directory to use for building the executable.
-If not specified, a temporary directory will be
-created and removed when Perl terminates.
-
-=item extra_compiler_flags
-
-Extra flags to pass to C<$cbuilder> during the
-compile step.  Should be either a list reference
-or string, see L<ExtUtils::CBuilder#compile>.
-
-=item extra_linker_flags
-
-Extra flags to pass to C<$cbuilder> during the
-link step.  Should be either a list reference
-or string, see L<ExtUtils::CBuilder#link>.
-
-=back
-
-=cut
-
-sub test_compile_run
-{
-  my($self, %opt) = @_;
-  delete $self->{error};
-  my $cbuilder = $opt{cbuilder} || do { require ExtUtils::CBuilder; ExtUtils::CBuilder->new(quiet => 1) };
-  
-  unless($cbuilder->have_compiler)
-  {
-    $self->{error} = 'no compiler';
-    return;
-  }
-  
-  return unless $cbuilder->have_compiler;
-  require File::Spec;
-  my $dir = $opt{dir} || do { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
-  my $fn = File::Spec->catfile($dir, 'test.c');
-  do {
-    open my $fh, '>', $fn;
-    print $fh "#include <archive.h>\n",
-              "#include <archive_entry.h>\n",
-              "#include <stdio.h>\n",
-              "int\n",
-              "main(int argc, char *argv[])\n",
-              "{\n",
-              "  printf(\"version = '%d'\\n\", archive_version_number());\n",
-              "  return 0;\n",
-              "}\n";
-    close $fh;
-  };
-  
-  my $test_object = eval {
-    $cbuilder->compile(
-      source               => $fn,
-      extra_compiler_flags => $opt{extra_compiler_flags} || [],
-    );
-  };
-  
-  if(my $error = $@)
-  {
-    $self->{error} = $error;
-    return;
-  }
-  
-  my $test_exe = eval {
-    $cbuilder->link_executable(
-      objects            => $test_object,
-      extra_linker_flags => $opt{extra_linker_flags} || [],
-    );
-  };
-  
-  if(my $error = $@)
-  {
-    $self->{error} = $error;
-    return;
-  }
-  
-  if($test_exe =~ /\s/)
-  {
-    $test_exe = Win32::GetShortPathName($test_exe) if $^O eq 'MSWin32';
-    $test_exe = Cygwin::win_to_posix_path(Win32::GetShortPathName(Cygwin::posix_to_win_path($test_exe))) if $^O eq 'cygwin';
-  }
-  
-  my $output = `$test_exe`;
-  
-  if($? == -1)
-  {
-    $self->{error} = "failed to execute $!";
-    return;
-  }
-  elsif($? & 127)
-  {
-    $self->{error} = "child died with siganl " . ($? & 127);
-    return;
-  }
-  elsif($?)
-  {
-    $self->{error} = "child exited with value " . ($? >> 8);
-    return;
-  }
-  
-  if($output =~ /version = '([0-9]+)([0-9]{3})([0-9]{3})'/)
-  {
-    return join '.', map { int } $1, $2, $3;
-  }
-  else
-  {
-    $self->{error} = "unable to retrieve version from output";
-    return;
-  }
-}
-
-=head2 error
-
-Returns the error from the previous call to L<test_compile_run|Alien::Libarchive::Installer#test_compile_run>.
-
-=cut
-
-sub error { shift->{error} }
-
 =head2 build_install
 
- my %build = $installer->build_install( '/usr/local', %options );
+ my $installer = Alien::Libarchive::Installer->build_install( '/usr/local', %options );
 
 B<NOTE:> using this method may (and probably does) require modules
 returned by the L<build_requires|Alien::Libarchive::Installer>
 method.
 
 Build and install libarchive into the given directory.  If there
-is an error an exception will be thrown.  A hash with these fields
-will be returned on success:
-
-=over 4
-
-=item version
-
-=item extra_compiler_flags
-
-=item extra_linker_flags
-
-=back
+is an error an exception will be thrown.  On a successful build, an
+instance of L<Alien::Libarchive::Installer> will be returned.
 
 These options may be passed into build_install:
 
@@ -396,7 +223,7 @@ sub _msys
 
 sub build_install
 {
-  my($self, $prefix, %options) = @_;
+  my($class, $prefix, %options) = @_;
   
   die "need an install prefix" unless $prefix;
   
@@ -406,7 +233,7 @@ sub build_install
   
   require Archive::Tar;
   my $tar = Archive::Tar->new;
-  $tar->read($options{tar} || $self->fetch);
+  $tar->read($options{tar} || $class->fetch);
   
   require Cwd;
   my $save = Cwd::getcwd();
@@ -524,23 +351,23 @@ sub build_install
       close $fh;
     };
     
-    my $build = {};
+    my $build = bless {}, $class;
     
-    $build->{extra_compiler_flags} = _try_pkg_config($pkg_config_dir, 'cflags', '-I' . File::Spec->catdir($prefix, 'include'));
-    $build->{extra_linker_flags}   = _try_pkg_config($pkg_config_dir, 'libs',   '-L' . File::Spec->catdir($prefix, 'lib'));
+    $build->{cflags} = _try_pkg_config($pkg_config_dir, 'cflags', '-I' . File::Spec->catdir($prefix, 'include'));
+    $build->{libs}   = _try_pkg_config($pkg_config_dir, 'libs',   '-L' . File::Spec->catdir($prefix, 'lib'));
     
     if($^O eq 'cygwin' || $^O eq 'MSWin32')
     {
       # TODO: should this go in the munged pc file?
-      unshift @{ $build->{extra_compiler_flags} }, '-DLIBARCHIVE_STATIC';
+      unshift @{ $build->{cflags} }, '-DLIBARCHIVE_STATIC';
     }
 
     require ExtUtils::CBuilder;
     my $cbuilder = ExtUtils::CBuilder->new;
-    $build->{version} = $self->test_compile_run(
+    $build->{version} = $build->test_compile_run(
       cbuilder => $cbuilder,
       %$build,
-    ) || die $self->error;
+    ) || die $build->error;
     $build;
   };
   
@@ -549,5 +376,180 @@ sub build_install
   die $error if $error;
   $build;
 }
+
+=head1 ATTRIBUTES
+
+Attributes of an L<Alien::Libarchive::Installer> provide the
+information needed to use an existing libarchive (which may
+either be provided by the system, or have just been built
+using L<build_install|Alien::Libarchive::Installer#build_install>.
+
+=head2 cflags
+
+The compiler flags required to use libarchive.
+
+=head2 libs
+
+The linker flags and libraries required to use libarchive.
+
+=head2 version
+
+The version of libarchive
+
+=cut
+
+sub cflags  { shift->{cflags}  }
+sub libs    { shift->{libs}    }
+sub version { shift->{version} }
+
+=head1 INSTANCE METHODS
+
+=head2 new
+
+ my $installer = Alien::Libarchive::Installer->new;
+
+Create a new instance of Alien::Libarchive::Installer.
+
+=cut
+
+sub new
+{
+  my($class) = @_;
+  my $self = bless {}, $class;
+  $self;
+}
+
+=head2 test_compile_run
+
+ if($installer->test_compile_run(%options))
+ {
+   # You have a working Alien::Libarchive as
+   # specified by %options
+ }
+ else
+ {
+   die $installer->error;
+ }
+
+Tests the compiler to see if you can build and run
+a simple libarchive program.  On success it will 
+return the libarchive version.  Other options include
+
+=over 4
+
+=item cbuilder
+
+The L<ExtUtils::CBuilder> instance that you want
+to use.  If not specified, then a new one will
+be created.
+
+=item dir
+
+Directory to use for building the executable.
+If not specified, a temporary directory will be
+created and removed when Perl terminates.
+
+=back
+
+=cut
+
+sub test_compile_run
+{
+  my($self, %opt) = @_;
+  delete $self->{error};
+  my $cbuilder = $opt{cbuilder} || do { require ExtUtils::CBuilder; ExtUtils::CBuilder->new(quiet => 1) };
+  
+  unless($cbuilder->have_compiler)
+  {
+    $self->{error} = 'no compiler';
+    return;
+  }
+  
+  return unless $cbuilder->have_compiler;
+  require File::Spec;
+  my $dir = $opt{dir} || do { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
+  my $fn = File::Spec->catfile($dir, 'test.c');
+  do {
+    open my $fh, '>', $fn;
+    print $fh "#include <archive.h>\n",
+              "#include <archive_entry.h>\n",
+              "#include <stdio.h>\n",
+              "int\n",
+              "main(int argc, char *argv[])\n",
+              "{\n",
+              "  printf(\"version = '%d'\\n\", archive_version_number());\n",
+              "  return 0;\n",
+              "}\n";
+    close $fh;
+  };
+  
+  my $test_object = eval {
+    $cbuilder->compile(
+      source               => $fn,
+      extra_compiler_flags => $self->{cflags} || [],
+    );
+  };
+  
+  if(my $error = $@)
+  {
+    $self->{error} = $error;
+    return;
+  }
+  
+  my $test_exe = eval {
+    $cbuilder->link_executable(
+      objects            => $test_object,
+      extra_linker_flags => $self->{libs} || [],
+    );
+  };
+  
+  if(my $error = $@)
+  {
+    $self->{error} = $error;
+    return;
+  }
+  
+  if($test_exe =~ /\s/)
+  {
+    $test_exe = Win32::GetShortPathName($test_exe) if $^O eq 'MSWin32';
+    $test_exe = Cygwin::win_to_posix_path(Win32::GetShortPathName(Cygwin::posix_to_win_path($test_exe))) if $^O eq 'cygwin';
+  }
+  
+  my $output = `$test_exe`;
+  
+  if($? == -1)
+  {
+    $self->{error} = "failed to execute $!";
+    return;
+  }
+  elsif($? & 127)
+  {
+    $self->{error} = "child died with siganl " . ($? & 127);
+    return;
+  }
+  elsif($?)
+  {
+    $self->{error} = "child exited with value " . ($? >> 8);
+    return;
+  }
+  
+  if($output =~ /version = '([0-9]+)([0-9]{3})([0-9]{3})'/)
+  {
+    return join '.', map { int } $1, $2, $3;
+  }
+  else
+  {
+    $self->{error} = "unable to retrieve version from output";
+    return;
+  }
+}
+
+=head2 error
+
+Returns the error from the previous call to L<test_compile_run|Alien::Libarchive::Installer#test_compile_run>.
+
+=cut
+
+sub error { shift->{error} }
 
 1;

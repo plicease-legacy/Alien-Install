@@ -55,9 +55,6 @@ use Alien::Libarchive::Installer;
 plan tests => 3;
 
 my $prefix = tempdir( CLEANUP => 1 );
-#my $prefix = "n:/tmp/libarchive";
-
-my $installer = Alien::Libarchive::Installer->new;
 
 foreach my $version (qw( 3.1.2 3.0.4 2.8.4 ))
 {
@@ -66,13 +63,13 @@ foreach my $version (qw( 3.1.2 3.0.4 2.8.4 ))
       if $^O eq 'MSWin32' && $version eq '2.8.4' && $Config{cc} !~ /cl(\.exe)?$/;
     plan tests => 5;
     my $tar = Alien::Libarchive::Installer->fetch( version => $version );
-    my $build = eval { $installer->build_install( File::Spec->catdir($prefix, $version), tar => $tar ) };
+    my $installer = eval { Alien::Libarchive::Installer->build_install( File::Spec->catdir($prefix, $version), tar => $tar ) };
     is $@, '', 'no error';
     SKIP: {
-      skip "can't test $build without a sucessful build", 4 if $@ ne '';
-      is $build->{version}, $version,    "version = $version";
-      ok $build->{extra_linker_flags},   "extra_linker_flags = ".   join(' ', @{ $build->{extra_linker_flags}   });
-      ok $build->{extra_compiler_flags}, "extra_compiler_flags = ". join(' ', @{ $build->{extra_compiler_flags} });
+      skip "can't test \$installer without a sucessful build", 4 if $@ ne '';
+      is $installer->version, $version,  "version = $version";
+      ok $installer->{libs},  "libs = ". join(' ', @{ $installer->libs });
+      ok $installer->{cflags}, "cflags = ". join(' ', @{ $installer->cflags });
       my $exe = File::Spec->catfile($prefix, $version, 'bin', 'bsdtar' . ($^O =~ /^(MSWin32|cygwin)$/ ? '.exe' : ''));
       ok -r $exe, "created executable $exe";
     };

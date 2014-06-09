@@ -14,7 +14,7 @@ plan skip_all => 'requires libarchive already installed'
 
 plan tests => 1;
 
-my $installer = Alien::Libarchive::Installer->new;
+my $installer = bless { cflags => [], libs => ['-larchive'] }, 'Alien::Libarchive::Installer';
 
-my $version = $installer->test_compile_run(extra_linker_flags => '-larchive');
+my $version = $installer->test_compile_run;
 like $version, qr{^[1-9][0-9]*(\.[0-9]+){2}$}, "version = $version";
