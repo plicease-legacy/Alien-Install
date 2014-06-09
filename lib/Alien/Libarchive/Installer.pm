@@ -6,6 +6,60 @@ use warnings;
 # ABSTRACT: Installer for libarchive
 # VERSION
 
+=head1 SYNOPSIS
+
+Build.PL
+
+ # as an optional dep
+ use Alien::Libarchive::Installer;
+ use Module::Build;
+ 
+ my %build_args;
+ 
+ my $installer = eval { Alien::Libarchive::Installer->system_install };
+ if($installer)
+ {
+   $build_args{extra_compiler_flags} = $installer->cflags,
+   $build_args{extra_linker_flags}   = $installer->libs,
+ }
+ 
+ my $build = Module::Build->new(%build_args);
+ $build->create_build_script;
+
+Build.PL
+
+ # require 3.0
+ use Alien::Libarchive::Installer;
+ use Module::Build;
+ 
+ my $installer = eval {
+   my $system_installer = Alien::Libarchive::Installer->system_install;
+   die "we require 3.0.x or better"
+     if $system->version !~ /^(\[0-9]+)\./ && $1 >= 3;
+   $system_installer;
+      # reasonably assumes that build_install will never download
+      # a version older that 3.0
+ } || Alien::Libarchive::Installer->build_install("dir");
+ 
+ my $build = Module::Build->new(
+   extra_compiler_flags => $installer->cflags,
+   extra_linker_flags   => $installer->libs,
+ );
+ $build->create_build_script;
+
+=head1 DESCRIPTION
+
+This distribution contains the logic for finding existing libarchive
+installs, and building new ones.  If you do not care much about the
+version of libarchive that you use, and libarchive is not an optional
+requirement, then you are probably more interested in using
+L<Alien::Libarchive>.
+
+Where L<Alien::Libarchive::Installer> is useful is when you have
+specific version requirements (say you require 3.0.x but 2.7.x
+will not do), but would still like to use the system libarchive
+if it is available.
+
 =head1 CLASS METHODS
 
 Class methods can be executed without creating an instance of
@@ -157,7 +211,7 @@ system.
 
 =cut
 
-sub system_requirements
+sub system_requires
 {
   my %prereqs = ();
   \%prereqs;

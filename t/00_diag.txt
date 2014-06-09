@@ -1,5 +1,2 @@
-ExtUtils::CBuilder
-File::Spec
-File::Temp
 Module::Build
 Test::More
