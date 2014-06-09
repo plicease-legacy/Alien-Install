@@ -382,7 +382,7 @@ sub _try_pkg_config
     # you probably think I am crazy...
     eval q{ use PkgConfig 0.07620 };
     die $@ if $@;
-    my $value = `$^X $INC{'PkgConfig.pm'} libarchive --$field`;
+    my $value = `$^X $INC{'PkgConfig.pm'} libarchive $extra --$field`;
     die if $?;
     $value;
   };
@@ -611,16 +611,28 @@ sub dlls
   
   unless(defined $self->{dlls} && defined $self->{dll_dir})
   {
-    require DynaLoader;
-    $self->{libs} = [] unless defined $self->{libs};
-    $self->{libs} = [ $self->{libs} ] unless ref $self->{libs};
-    my $path = DynaLoader::dl_findfile(grep /^-l/, @{ $self->libs });
-    die "unable to find dynamic library" unless defined $path;
-    require File::Spec;
-    my($vol, $dirs, $file) = File::Spec->splitpath($path);
-    $self->{dlls}    = [ $file ];
-    $self->{dll_dir} = [];
-    $prefix = File::Spec->catpath($vol, $dirs);
+    if($^O eq 'cygwin')
+    {
+      # /usr/bin/cygarchive-13.dll
+      opendir my $dh, '/usr/bin';
+      $self->{dlls} = [grep /^cygarchive-[0-9]+.dll$/i, readdir $dh];
+      $self->{dll_dir} = [];
+      $prefix = '/usr/bin';
+      closedir $dh;
+    }
+    else
+    {
+      require DynaLoader;
+      $self->{libs} = [] unless defined $self->{libs};
+      $self->{libs} = [ $self->{libs} ] unless ref $self->{libs};
+      my $path = DynaLoader::dl_findfile(grep /^-l/, @{ $self->libs });
+      die "unable to find dynamic library" unless defined $path;
+      require File::Spec;
+      my($vol, $dirs, $file) = File::Spec->splitpath($path);
+      $self->{dlls}    = [ $file ];
+      $self->{dll_dir} = [];
+      $prefix = File::Spec->catpath($vol, $dirs);
+    }
   }
   
   require File::Spec;
