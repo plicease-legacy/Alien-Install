@@ -10,7 +10,7 @@ use warnings;
 
 Class methods can be executed without creating an instance of
 L<Alien::libarchive::Installer>, and generally used to query
-status of libarchive availablity (either via the system or the
+status of libarchive availability (either via the system or the
 internet).  Methods that discover a system libarchive or build
 a one from source code on the Internet will generally return
 an instance of L<Alien::Libarchive::Installer> which can be

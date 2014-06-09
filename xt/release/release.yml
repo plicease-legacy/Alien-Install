@@ -6,6 +6,8 @@ pod_spelling_system:
   stopwords:
     - cbuilder
     - libarchive
+    - cflags
+    - libs
 
 pod_coverage:
   skip: 0
