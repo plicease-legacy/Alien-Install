@@ -53,8 +53,14 @@ FFI::Raw
  use Alien::Libarchive::Installer;
  use FFI::Raw;
  
- my($dll) = Alien::Libarchive::Installer->system_install->dlls;
- FFI::Raw->new($dll, 'archive_read_new', FFI::Raw::ptr);
+ eval {
+   my($dll) = Alien::Libarchive::Installer->system_install->dlls;
+   FFI::Raw->new($dll, 'archive_read_new', FFI::Raw::ptr);
+ };
+ if($@)
+ {
+   # handle it if libarchive is not available
+ }
 
 =head1 DESCRIPTION
 
@@ -228,26 +234,76 @@ sub system_requires
 
 =head2 system_install
 
- my $installer = Alien::Libarchive::Installer->system_install;
+ my $installer = Alien::Libarchive::Installer->system_install(%options);
 
 B<NOTE:> using this method may require modules returned by the
 L<system_requires|Alien::Libarchive::Installer> method.
+
+B<NOTE:> This form will also use the libarchive provided by L<Alien::Libarchive>
+if version 0.19 or better is installed.  This makes this method ideal for
+finding libarchive as an optional dependency.
+
+Options:
+
+=over 4
+
+=item test
+
+Specifies the test type that should be used to verify the integrity
+of the system libarchive.  Generally this should be
+set according to the needs of your module.  Should be one of:
+
+=over 4
+
+=item compile
+
+use L<test_compile_run|Alien::Libarchive::Installer#test_compile_run> to verify.
+This is the default.
+
+=item ffi
+
+use L<test_ffi|Alien::Libarchive::Installer#test_ffi> to verify
+
+=item both
+
+use both
+L<test_compile_run|Alien::Libarchive::Installer#test_compile_run>
+and
+L<test_ffi|Alien::Libarchive::Installer#test_ffi>
+to verify
+
+=back
+
+=back
 
 =cut
 
 sub system_install
 {
-  my($class) = @_;
+  my($class, %options) = @_;
 
-  # TODO: Also try Alien::Libarchive in case it is already installed.
-  # probably making sure that the version is 0.19 or better...
-  
+  $options{test} ||= 'compile';
+  die "test must be one of compile, ffi or both"
+    unless $options{test} =~ /^(compile|ffi|both)$/;
+
+  if(eval q{ use Alien::Libarchive 0.19; 1 })
+  {
+    my $alien = Alien::Libarchive->new;
+    my $build = bless {
+      cflags => $alien->cflags,
+      libs   => $alien->libs,
+    }, $class;
+    return $build if $options{test} =~ /^(compile|both)$/ && $build->test_compile_run;
+    return $build if $options{test} =~ /^(ffi|both)$/ && $build->test_compile_run;
+  }
+
   my $build = bless {
     cflags => _try_pkg_config(undef, 'cflags', '', ''),
     libs   => _try_pkg_config(undef, 'libs',   '-larchive', ''),
   }, $class;
   
-  die $build->error unless $build->test_compile_run;
+  $build->test_compile_run || die $build->error if $options{test} =~ /^(compile|both)$/;
+  $build->test_ffi || die $build->error if $options{test} =~ /^(ffi|both)$/;
   $build;
 }
 
@@ -361,7 +417,6 @@ sub build_install
   my($class, $prefix, %options) = @_;
   
   $options{test} ||= 'compile';
-
   die "test must be one of compile, ffi or both"
     unless $options{test} =~ /^(compile|ffi|both)$/;
   die "need an install prefix" unless $prefix;

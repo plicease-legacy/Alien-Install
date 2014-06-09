@@ -43,6 +43,21 @@ Build.PL
     );
     $build->create_build_script;
 
+FFI::Raw
+
+    # as an optional dep
+    use Alien::Libarchive::Installer;
+    use FFI::Raw;
+    
+    eval {
+      my($dll) = Alien::Libarchive::Installer->system_install->dlls;
+      FFI::Raw->new($dll, 'archive_read_new', FFI::Raw::ptr);
+    };
+    if($@)
+    {
+      # handle it if libarchive is not available
+    }
+
 # DESCRIPTION
 
 This distribution contains the logic for finding existing libarchive
@@ -120,10 +135,39 @@ system.
 
 ## system\_install
 
-    my $installer = Alien::Libarchive::Installer->system_install;
+    my $installer = Alien::Libarchive::Installer->system_install(%options);
 
 **NOTE:** using this method may require modules returned by the
 [system\_requires](https://metacpan.org/pod/Alien::Libarchive::Installer) method.
+
+**NOTE:** This form will also use the libarchive provided by [Alien::Libarchive](https://metacpan.org/pod/Alien::Libarchive)
+if version 0.19 or better is installed.  This makes this method ideal for
+finding libarchive as an optional dependency.
+
+Options:
+
+- test
+
+    Specifies the test type that should be used to verify the integrity
+    of the system libarchive.  Generally this should be
+    set according to the needs of your module.  Should be one of:
+
+    - compile
+
+        use [test\_compile\_run](https://metacpan.org/pod/Alien::Libarchive::Installer#test_compile_run) to verify.
+        This is the default.
+
+    - ffi
+
+        use [test\_ffi](https://metacpan.org/pod/Alien::Libarchive::Installer#test_ffi) to verify
+
+    - both
+
+        use both
+        [test\_compile\_run](https://metacpan.org/pod/Alien::Libarchive::Installer#test_compile_run)
+        and
+        [test\_ffi](https://metacpan.org/pod/Alien::Libarchive::Installer#test_ffi)
+        to verify
 
 ## build\_install
 
