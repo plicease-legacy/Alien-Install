@@ -629,7 +629,18 @@ sub dlls
       die "unable to find dynamic library" unless defined $path;
       require File::Spec;
       my($vol, $dirs, $file) = File::Spec->splitpath($path);
-      $self->{dlls}    = [ $file ];
+      if($^O eq 'openbsd')
+      {
+        # on openbsd we get the .a file back, so have to scan
+        # for .so.#.# as there is no .so symlink
+        opendir(my $dh, $dirs);
+        $self->{dlls} = [grep /^libarchive.so/, readdir $dh];
+        closedir $dh;
+      }
+      else
+      {
+        $self->{dlls} = [ $file ];
+      }
       $self->{dll_dir} = [];
       $prefix = File::Spec->catpath($vol, $dirs);
     }
