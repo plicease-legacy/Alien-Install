@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+  - added alien option for system_install
 
 0.01      2014-06-09 16:46:04 -0400
   - initial version

@@ -274,6 +274,12 @@ to verify
 
 =back
 
+=item alien
+
+If true (the default) then an existing L<Alien::Libarchive> will be
+used if version 0.19 or better is found.  Usually this is what you
+want.
+
 =back
 
 =cut
@@ -282,11 +288,12 @@ sub system_install
 {
   my($class, %options) = @_;
 
+  $options{alien} = 1 unless defined $options{alien};
   $options{test} ||= 'compile';
   die "test must be one of compile, ffi or both"
     unless $options{test} =~ /^(compile|ffi|both)$/;
 
-  if(eval q{ use Alien::Libarchive 0.19; 1 })
+  if($options{alien} && eval q{ use Alien::Libarchive 0.19; 1 })
   {
     my $alien = Alien::Libarchive->new;
     my $build = bless {
