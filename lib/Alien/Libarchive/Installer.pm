@@ -210,7 +210,7 @@ sub build_requires
     }
     else
     {
-      $prereqs{'Alien::MSYS'} = '0,07';
+      $prereqs{'Alien::MSYS'} = '0.07';
       $prereqs{'PkgConfig'}   = '0.07620';
     }
   }
