@@ -612,6 +612,8 @@ sub dlls
   unless(defined $self->{dlls} && defined $self->{dll_dir})
   {
     require DynaLoader;
+    $self->{libs} = [] unless defined $self->{libs};
+    $self->{libs} = [ $self->{libs} ] unless ref $self->{libs};
     my $path = DynaLoader::dl_findfile(grep /^-l/, @{ $self->libs });
     die "unable to find dynamic library" unless defined $path;
     require File::Spec;
