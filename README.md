@@ -169,6 +169,12 @@ Options:
         [test\_ffi](https://metacpan.org/pod/Alien::Libarchive::Installer#test_ffi)
         to verify
 
+- alien
+
+    If true (the default) then an existing [Alien::Libarchive](https://metacpan.org/pod/Alien::Libarchive) will be
+    used if version 0.19 or better is found.  Usually this is what you
+    want.
+
 ## build\_install
 
     my $installer = Alien::Libarchive::Installer->build_install( '/usr/local', %options );

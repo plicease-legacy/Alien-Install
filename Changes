@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.02      2014-06-10 06:09:09 -0400
   - added alien option for system_install
   - keep symbolic links as symbolic links when copy to dll directory
 
