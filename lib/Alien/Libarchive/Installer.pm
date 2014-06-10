@@ -496,11 +496,18 @@ sub build_install
         closedir $dh;
         foreach my $basename (@list)
         {
-          require File::Copy;
-          File::Copy::move(
-            File::Spec->catfile($static_dir, $basename),
-            File::Spec->catfile($dll_dir,    $basename),
-          );
+          my $from = File::Spec->catfile($static_dir, $basename);
+          my $to   = File::Spec->catfile($dll_dir,    $basename);
+          if(-l $from)
+          {
+            symlink(readlink $from, $to);
+            unlink($from);
+          }
+          else
+          {
+            require File::Copy;
+            File::Copy::move($from, $to);
+          }
         }
       };
     }
