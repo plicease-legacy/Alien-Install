@@ -23,6 +23,7 @@ perl:
 
 #before_script: /bin/true
 
-script: dzil test -v
+script:
+  - dzil test -v
 
 #after_script: /bin/true
