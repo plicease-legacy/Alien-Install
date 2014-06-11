@@ -97,7 +97,7 @@ Versions will be sorted from oldest (smallest) to newest (largest).
     my $location = Alien::Libarchive::Installer->fetch(%options);
 
 **NOTE:** using this method may (and probably does) require modules
-returned by the [build\_requires](https://metacpan.org/pod/Alien::Libarchive::Installer)
+returned by the [build\_requires](https://metacpan.org/pod/Alien::Libarchive::Installer#build_requires)
 method.
 
 Download libarchive source from the internet.  By default it will

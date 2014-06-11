@@ -7,8 +7,6 @@ use DynaLoader;
 
 plan skip_all => 'test requires FFI::Raw'
   unless eval { require FFI::Raw };
-plan skip_all => 'test requires HTTP::Tiny'
-  unless eval { require HTTP::Tiny };
 plan skip_all => 'test requires dynamic libarchive'
   unless (defined DynaLoader::dl_findfile('-larchive')) || ($^O eq 'cygwin' && -e '/usr/bin/cygarchive-13.dll');
 
