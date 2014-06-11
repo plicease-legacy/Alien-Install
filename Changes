@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+  - make t/versions_available.t contingent on HTTP::Tiny
 
 0.04      2014-06-10 12:48:25 -0400
   - fix test failure when HTTP::Tiny is not installed
