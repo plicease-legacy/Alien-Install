@@ -31,7 +31,7 @@ Build.PL
     my $installer = eval {
       my $system_installer = Alien::Libarchive::Installer->system_install;
       die "we require 3.0.x or better"
-        if $system->version !~ /^(\[0-9]+)\./ && $1 >= 3;
+        if $system->version !~ /^([0-9]+)\./ && $1 >= 3;
       $system_installer;
          # reasonably assumes that build_install will never download
          # a version older that 3.0
