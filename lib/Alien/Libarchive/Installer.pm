@@ -696,6 +696,12 @@ Directory to use for building the executable.
 If not specified, a temporary directory will be
 created and removed when Perl terminates.
 
+=item quiet
+
+Passed into L<ExtUtils::CBuilder> if you do not
+provide your own instance.  The default is true
+(unlike L<ExtUtils::CBuilder> itself).
+
 =back
 
 =cut
@@ -704,7 +710,8 @@ sub test_compile_run
 {
   my($self, %opt) = @_;
   delete $self->{error};
-  my $cbuilder = $opt{cbuilder} || do { require ExtUtils::CBuilder; ExtUtils::CBuilder->new(quiet => 1) };
+  $self->{quiet} = 1 unless defined $self->{quiet};
+  my $cbuilder = $opt{cbuilder} || do { require ExtUtils::CBuilder; ExtUtils::CBuilder->new(quiet => $self->{quiet}) };
   
   unless($cbuilder->have_compiler)
   {

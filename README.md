@@ -277,6 +277,12 @@ return the libarchive version.  Other options include
     If not specified, a temporary directory will be
     created and removed when Perl terminates.
 
+- quiet
+
+    Passed into [ExtUtils::CBuilder](https://metacpan.org/pod/ExtUtils::CBuilder) if you do not
+    provide your own instance.  The default is true
+    (unlike [ExtUtils::CBuilder](https://metacpan.org/pod/ExtUtils::CBuilder) itself).
+
 ## test\_ffi
 
     if($installer->test_ffi(%options))
