@@ -671,7 +671,7 @@ sub dlls
         $self->{dlls} = [ $file ];
       }
       $self->{dll_dir} = [];
-      $prefix = File::Spec->catpath($vol, $dirs);
+      $self->{prefix} = $prefix = File::Spec->catpath($vol, $dirs);
     }
   }
   
