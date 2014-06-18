@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+  - tests do not require internet connection
 
 0.05      2014-06-11 05:23:31 -0400
   - make t/versions_available.t contingent on HTTP::Tiny
