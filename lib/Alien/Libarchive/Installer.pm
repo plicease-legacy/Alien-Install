@@ -296,12 +296,27 @@ sub system_install
   if($options{alien} && eval q{ use Alien::Libarchive 0.19; 1 })
   {
     my $alien = Alien::Libarchive->new;
+    
+    require File::Spec;
+    my $dir;
+    my(@dlls) = map { 
+      my($v,$d,$f) = File::Spec->splitpath($_); 
+      $dir = [$v,File::Spec->splitdir($d)]; 
+      $f;
+    } $alien->dlls;
+    
     my $build = bless {
-      cflags => $alien->cflags,
-      libs   => $alien->libs,
+      cflags  => $alien->cflags,
+      libs    => $alien->libs,
+      dll_dir => $dir,
+      dlls    => \@dlls,
+      prefix  => File::Spec->rootdir,
     }, $class;
-    return $build if $options{test} =~ /^(compile|both)$/ && $build->test_compile_run;
-    return $build if $options{test} =~ /^(ffi|both)$/ && $build->test_compile_run;
+    eval {
+      $build->test_compile_run || die $build->error if $options{test} =~ /^(compile|both)$/;
+      $build->test_ffi || die $build->error if $options{test} =~ /^(ffi|both)$/;
+    };
+    return $build unless $@;
   }
 
   my $build = bless {
