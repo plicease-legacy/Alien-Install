@@ -306,8 +306,8 @@ sub system_install
     } $alien->dlls;
     
     my $build = bless {
-      cflags  => $alien->cflags,
-      libs    => $alien->libs,
+      cflags  => [$alien->cflags],
+      libs    => [$alien->libs],
       dll_dir => $dir,
       dlls    => \@dlls,
       prefix  => File::Spec->rootdir,
