@@ -1,7 +1,9 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
-  - fix system_install / Alien::Libarchive testing
+
+0.06      2014-06-18 15:45:11 -0400
+  - fix system_install / Alien::Libarchive combination
   - tests do not require internet connection
 
 0.05      2014-06-11 05:23:31 -0400
