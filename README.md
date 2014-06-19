@@ -141,7 +141,7 @@ system.
 [system\_requires](https://metacpan.org/pod/Alien::Libarchive::Installer) method.
 
 **NOTE:** This form will also use the libarchive provided by [Alien::Libarchive](https://metacpan.org/pod/Alien::Libarchive)
-if version 0.19 or better is installed.  This makes this method ideal for
+if version 0.21 or better is installed.  This makes this method ideal for
 finding libarchive as an optional dependency.
 
 Options:
@@ -172,7 +172,7 @@ Options:
 - alien
 
     If true (the default) then an existing [Alien::Libarchive](https://metacpan.org/pod/Alien::Libarchive) will be
-    used if version 0.19 or better is found.  Usually this is what you
+    used if version 0.21 or better is found.  Usually this is what you
     want.
 
 ## build\_install
