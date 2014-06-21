@@ -318,11 +318,61 @@ sub system_install
     };
     return $build unless $@;
   }
-
+  
   my $build = bless {
     cflags => _try_pkg_config(undef, 'cflags', '', ''),
     libs   => _try_pkg_config(undef, 'libs',   '-larchive', ''),
   }, $class;
+  
+  if($options{test} =~ /^(ffi|both)$/)
+  {
+    my @dir_search_list;
+    
+    if($^O eq 'MSWin32')
+    {
+      # On MSWin32 the entire path is not included in dl_library_path
+      # buth that is the most likely place that we will find dlls.
+      @dir_search_list = grep { -d $_ } split /;/, $ENV{PATH};
+    }
+    else
+    {
+      require DynaLoader;
+      @dir_search_list = grep { -d $_ } @DynaLoader::dl_library_path
+    }
+    
+    found_dll: foreach my $dir (@dir_search_list)
+    {
+      my $dh;
+      opendir($dh, $dir) || next;
+      # sort by filename length so that libarchive.so.12.0.4
+      # is preferred over libarchive.so.12 or libarchive.so
+      # if only to make diagnostics point to the more specific
+      # version.
+      foreach my $file (sort { length $b <=> length $a } readdir $dh)
+      {
+        if($^O eq 'MSWin32')
+        {
+          next unless $file =~ /^libarchive-[0-9]+\.dll$/i;
+        }
+        elsif($^O eq 'cygwin')
+        {
+          next unless $file =~ /^cygarchive-[0-9]+\.dll$/i;
+        }
+        else
+        {
+          next unless $file =~ /^libarchive\.(dylib|so(\.[0-9]+)*)$/;
+        }
+        require File::Spec;
+        my($v,$d) = File::Spec->splitpath($dir, 1);
+        $build->{dll_dir} = [File::Spec->splitdir($d)];
+        $build->{prefix}  = $v;
+        $build->{dlls}    = [$file];
+        closedir $dh;
+        last found_dll;
+      }
+      closedir $dh;
+    }
+  }
   
   $build->test_compile_run || die $build->error if $options{test} =~ /^(compile|both)$/;
   $build->test_ffi || die $build->error if $options{test} =~ /^(ffi|both)$/;
@@ -507,7 +557,7 @@ sub build_install
         my $dh;
         opendir $dh, $static_dir;
         my @list = readdir $dh;
-        @list = grep { /\.so/ || /\.(dylib|la|dll|dll\.a)$/} grep !/^\./, @list;
+        @list = grep { /\.so/ || /\.(dylib|la|dll|dll\.a)$/ } grep !/^\./, @list;
         closedir $dh;
         foreach my $basename (@list)
         {
@@ -640,6 +690,8 @@ sub dlls
   
   unless(defined $self->{dlls} && defined $self->{dll_dir})
   {
+    # Question: is this necessary in light of the better
+    # dll detection now done in system_install ?
     if($^O eq 'cygwin')
     {
       # /usr/bin/cygarchive-13.dll
