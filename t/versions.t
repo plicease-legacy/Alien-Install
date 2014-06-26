@@ -10,7 +10,7 @@ plan skip_all => 'test requires HTTP::Tiny'
 
 plan tests => 1;
 
-my @versions = eval { Alien::Libarchive::Installer->versions_available };
+my @versions = eval { Alien::Libarchive::Installer->versions };
 diag $@ if $@;
 ok @versions > 0, 'some versions';
 note $_ for @versions;
