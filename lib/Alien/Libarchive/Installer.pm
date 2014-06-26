@@ -12,6 +12,7 @@ use Carp qw( carp );
 with qw(
   Alien::Install::Role::Installer
   Alien::Install::Role::HTTP
+  Alien::Install::Role::Tar
   Alien::Install::Role::Autoconf
 );
 
@@ -179,8 +180,6 @@ The requirements may be different depending on your
 platform.
 
 =cut
-
-register_build_requires 'Archive::Tar' => 0;
 
 if($^O eq 'MSWin32')
 {
@@ -468,9 +467,7 @@ sub build_install
   
   my $dir = $options{dir} || do { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
   
-  require Archive::Tar;
-  my $tar = Archive::Tar->new;
-  $tar->read($options{tar} || $class->fetch);
+  $class->extract($options{tar} || $class->fetch, $dir);
   
   require Cwd;
   my $save = Cwd::getcwd();
@@ -478,16 +475,7 @@ sub build_install
   chdir $dir;  
   my $build = eval {
   
-    $tar->extract;
-
-    chdir do {
-      opendir my $dh, '.';
-      my(@list) = grep !/^\./,readdir $dh;
-      close $dh;
-      die "unable to find source in build root" if @list == 0;
-      die "confused by multiple entries in the build root" if @list > 1;
-      $list[0];
-    };
+    $class->chdir_source($dir);
   
     _msys(sub {
       my($make) = @_;
@@ -648,10 +636,6 @@ be used by L<FFI::Raw> or similar.
 The version of libarchive
 
 =cut
-
-sub cflags  { shift->{cflags}  }
-sub libs    { shift->{libs}    }
-sub version { shift->{version} }
 
 sub dlls
 {
@@ -883,8 +867,6 @@ Returns the error from the previous call to L<test_compile_run|Alien::Libarchive
 or L<test_ffi|Alien::Libarchive::Installer#test_ffi>.
 
 =cut
-
-sub error { shift->{error} }
 
 1;
 

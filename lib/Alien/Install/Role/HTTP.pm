@@ -84,4 +84,9 @@ sub fetch
 
 register_build_requires 'HTTP::Tiny' => 0;
 
+
+sub cflags  { shift->{cflags}  }
+sub libs    { shift->{libs}    }
+sub version { shift->{version} }
+
 1;

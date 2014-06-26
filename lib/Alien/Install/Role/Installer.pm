@@ -10,6 +10,8 @@ use Alien::Install::Util;
 
 requires 'versions';
 requires 'fetch';
+requires 'extract';
+requires 'chdir_source';
 
 my $build_requires = \%Alien::Install::Util::build_requires;
 
@@ -54,5 +56,7 @@ sub system_requires
   
   \%requires;
 }
+
+sub error { shift->{error} }
 
 1;
