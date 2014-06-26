@@ -82,9 +82,9 @@ an instance of [Alien::Libarchive::Installer](https://metacpan.org/pod/Alien::Li
 queried to retrieve the settings needed to interact with 
 libarchive via XS or [FFI::Raw](https://metacpan.org/pod/FFI::Raw).
 
-## versions\_available
+## versions
 
-    my @versions = Alien::Libarchive::Installer->versions_available;
+    my @versions = Alien::Libarchive::Installer->versions;
     my $latest_version = $versions[-1];
 
 Return the list of versions of libarchive available on the Internet.

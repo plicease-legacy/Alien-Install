@@ -2,9 +2,14 @@ package Alien::Libarchive::Installer;
 
 use strict;
 use warnings;
+use Role::Tiny::With;
+use Carp qw( carp );
 
 # ABSTRACT: Installer for libarchive
 # VERSION
+
+with 'Alien::Install::Role::Download::HTTP';
+with 'Alien::Install::Role::Build::Autoconf';
 
 =head1 SYNOPSIS
 
@@ -86,9 +91,9 @@ an instance of L<Alien::Libarchive::Installer> which can be
 queried to retrieve the settings needed to interact with 
 libarchive via XS or L<FFI::Raw>.
 
-=head2 versions_available
+=head2 versions
 
- my @versions = Alien::Libarchive::Installer->versions_available;
+ my @versions = Alien::Libarchive::Installer->versions;
  my $latest_version = $versions[-1];
 
 Return the list of versions of libarchive available on the Internet.
@@ -97,18 +102,28 @@ Versions will be sorted from oldest (smallest) to newest (largest).
 
 =cut
 
+use constant versions_url => 'http://www.libarchive.org/downloads/';
+
+sub versions_process
+{
+  sub {
+    my($content) = @_;
+    my @versions;
+    push @versions, [$1,$2,$3] while $content =~ /libarchive-([1-9][0-9]*)\.([0-9]+)\.([0-9]+)\.tar.gz/g;
+    @versions;
+  }
+}
+
+sub versions_sort
+{
+  shift; # $class
+  map { join '.', @$_ } sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] || $a->[2] <=> $b->[2] } @_;
+}
+
 sub versions_available
 {
-  require HTTP::Tiny;
-  my $url = "http://www.libarchive.org/downloads/";
-  my $response = HTTP::Tiny->new->get($url);
-  
-  die sprintf("%s %s %s", $response->{status}, $response->{reason}, $url)
-    unless $response->{success};
-
-  my @versions;
-  push @versions, [$1,$2,$3] while $response->{content} =~ /libarchive-([1-9][0-9]*)\.([0-9]+)\.([0-9]+)\.tar.gz/g;
-  @versions = map { join '.', @$_ } sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] || $a->[2] <=> $b->[2] } @versions;
+  carp "versions_available is deprecated, please use versions instead";
+  shift->versions(@_);
 }
 
 =head2 fetch
@@ -147,7 +162,7 @@ sub fetch
 
   require HTTP::Tiny;  
   my $version = $options{version} || do {
-    my @versions = $class->versions_available;
+    my @versions = $class->versions;
     die "unable to determine latest version from listing"
       unless @versions > 0;
     $versions[-1];
