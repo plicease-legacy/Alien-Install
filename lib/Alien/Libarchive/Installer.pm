@@ -16,6 +16,7 @@ if($^O eq 'MSWin32' && do { require Config; $Config::Config{cc} =~ /cl(\.exe)?$/
     Alien::Install::Role::HTTP
     Alien::Install::Role::Tar 
     Alien::Install::Role::CMake
+    Alien::Install::Role::TestCompileRun
   );
 }
 else
@@ -25,6 +26,7 @@ else
     Alien::Install::Role::HTTP
     Alien::Install::Role::Tar 
     Alien::Install::Role::Autoconf
+    Alien::Install::Role::TestCompileRun
   );
   
   register_build_requires 'PkgConfig'   => '0.07620' if $^O eq 'MSWin32';
@@ -623,96 +625,22 @@ provide your own instance.  The default is true
 
 =cut
 
-sub test_compile_run
-{
-  my($self, %opt) = @_;
-  delete $self->{error};
-  $self->{quiet} = 1 unless defined $self->{quiet};
-  my $cbuilder = $opt{cbuilder} || do { require ExtUtils::CBuilder; ExtUtils::CBuilder->new(quiet => $self->{quiet}) };
-  
-  unless($cbuilder->have_compiler)
-  {
-    $self->{error} = 'no compiler';
-    return;
-  }
-  
-  require File::Spec;
-  my $dir = $opt{dir} || do { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
-  my $fn = File::Spec->catfile($dir, 'test.c');
-  do {
-    open my $fh, '>', $fn;
-    print $fh "#include <archive.h>\n",
-              "#include <archive_entry.h>\n",
-              "#include <stdio.h>\n",
-              "int\n",
-              "main(int argc, char *argv[])\n",
-              "{\n",
-              "  printf(\"version = '%d'\\n\", archive_version_number());\n",
-              "  return 0;\n",
-              "}\n";
-    close $fh;
-  };
-  
-  my $test_object = eval {
-    $cbuilder->compile(
-      source               => $fn,
-      extra_compiler_flags => $self->{cflags} || [],
-    );
-  };
-  
-  if(my $error = $@)
-  {
-    $self->{error} = $error;
-    return;
-  }
-  
-  my $test_exe = eval {
-    $cbuilder->link_executable(
-      objects            => $test_object,
-      extra_linker_flags => $self->{libs} || [],
-    );
-  };
-  
-  if(my $error = $@)
-  {
-    $self->{error} = $error;
-    return;
-  }
-  
-  if($test_exe =~ /\s/)
-  {
-    $test_exe = Win32::GetShortPathName($test_exe) if $^O eq 'MSWin32';
-    $test_exe = Cygwin::win_to_posix_path(Win32::GetShortPathName(Cygwin::posix_to_win_path($test_exe))) if $^O eq 'cygwin';
-  }
-  
-  my $output = `$test_exe`;
-  
-  if($? == -1)
-  {
-    $self->{error} = "failed to execute $!";
-    return;
-  }
-  elsif($? & 127)
-  {
-    $self->{error} = "child died with siganl " . ($? & 127);
-    return;
-  }
-  elsif($?)
-  {
-    $self->{error} = "child exited with value " . ($? >> 8);
-    return;
-  }
-  
-  if($output =~ /version = '([0-9]+)([0-9]{3})([0-9]{3})'/)
-  {
-    return $self->{version} = join '.', map { int } $1, $2, $3;
-  }
-  else
-  {
-    $self->{error} = "unable to retrieve version from output";
-    return;
-  }
-}
+use constant test_compile_run_program =>
+  join ("\n",
+    "#include <archive.h>",
+    "#include <archive_entry.h>",
+    "#include <stdio.h>",
+    "int",
+    "main(int argc, char *argv[])",
+    "{",
+    "  printf(\"version = '%s'\\n\", archive_version_string());",
+    "  return 0;",
+    "}",
+    "",
+  );
+;
+
+use constant test_compile_run_match => qr{version = 'libarchive (.*?)'};
 
 =head2 test_ffi
 
