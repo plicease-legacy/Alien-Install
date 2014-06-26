@@ -9,7 +9,7 @@ use Alien::Install::Util;
 
 sub extract
 {
-  my($class, $archive, $dir) = @_;
+  my(undef, $archive, $dir) = @_;
   
   require Archive::Tar;
   my $tar = Archive::Tar->new;
@@ -32,7 +32,7 @@ register_build_requires 'Archive::Tar' => 0;
 
 sub chdir_source
 {
-  my($class, $dir) = @_;
+  my(undef, $dir) = @_;
   chdir $dir;
   chdir do {
     opendir my $dh, '.';

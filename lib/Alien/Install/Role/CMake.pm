@@ -1,4 +1,4 @@
-package Alien::Install::Role::Autoconf;
+package Alien::Install::Role::CMake;
 
 use strict;
 use warnings;
@@ -6,33 +6,13 @@ use Role::Tiny;
 use Alien::Install::Util;
 use Carp qw( carp );
 
-# ABSTRACT: Installer role for Autoconf
+# ABSTRACT: Installer role for CMake
 # VERSION
 
 requires 'extract';
 requires 'chdir_source';
-requires 'test_compile_run';
-requires 'test_ffi';
-requires 'build_install_cflags';
-requires 'build_install_libs';
-requires 'build_install_dlls';
 
-register_build_requires 'Alien::MSYS' => '0.07'
-  if $^O eq 'MSWin32';
-
-sub _msys
-{
-  my($sub) = @_;
-  if($^O eq 'MSWin32')
-  {
-    require Alien::MSYS;
-    return Alien::MSYS::msys(sub{ $sub->('make') });
-  }
-  require Config;
-  $sub->($Config::Config{make});
-}
-
-sub configure_arguments { ('--with-pic') };
+register_build_requires 'Alien::CMake' => '0.05';
 
 sub build_install
 {
@@ -61,16 +41,25 @@ sub build_install
   
     $class->call_hooks('pre_build', $dir, $prefix);
   
-    _msys(sub {
-      my($make) = @_;
-      system 'sh', 'configure', "--prefix=$prefix", $class->configure_arguments;
-      die "configure failed" if $?;
-      system $make, 'all';
-      die "make all failed" if $?;
-      $class->call_hooks('post_build', $dir, $prefix);
-      system $make, 'install';
-      die "make install failed" if $?;
-    });
+    require Config;
+    my($make) = $Config::Config{make};
+    
+    require Alien::CMake;
+    my $cmake = Alien::CMake->config('prefix') . '/bin/cmake.exe';
+    
+    system $cmake,
+      -G => $make =~ /nmake(\.exe)?$/ ? 'NMake Makefiles' : 'MinGW Makefiles',
+      "-DCMAKE_MAKE_PROGRAM:PATH=$make",
+      "-DCMAKE_INSTALL_PREFIX:PATH=$prefix",
+      "-DENABLE_TEST=OFF",
+      ".";
+    die "cmake failed" if $?;
+        
+    system $make, 'all';
+    die "make all failed" if $?;
+    $class->call_hooks('post_build', $dir, $prefix);
+    system $make, 'install';
+    die "make install failed" if $?;
 
     $class->call_hooks('post_install', $prefix);
     

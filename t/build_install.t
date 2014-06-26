@@ -67,8 +67,8 @@ foreach my $version (qw( 3.1.2 3.0.4 2.8.4 ))
     plan skip_all => "not testing $version on cygwin"
       if $^O eq 'cygwin' && $version ne '2.8.4';
     plan tests => 5;
-    my $tar = Alien::Libarchive::Installer->fetch( version => $version );
-    my $installer = eval { Alien::Libarchive::Installer->build_install( File::Spec->catdir($prefix, $version), tar => $tar, test => $type ) };
+    my $archive = Alien::Libarchive::Installer->fetch( version => $version );
+    my $installer = eval { Alien::Libarchive::Installer->build_install( File::Spec->catdir($prefix, $version), archive => $archive, test => $type ) };
     is $@, '', 'no error';
     SKIP: {
       skip "can't test \$installer without a sucessful build", 4 if $@ ne '';

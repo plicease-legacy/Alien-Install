@@ -12,6 +12,14 @@ requires 'versions';
 requires 'fetch';
 requires 'extract';
 requires 'chdir_source';
+requires 'test_compile_run';
+
+sub test_ffi
+{
+  my($self) = @_;
+  my $class = ref($self) || $self;
+  die "test_ffi not implemented for $class";
+}
 
 my $build_requires = \%Alien::Install::Util::build_requires;
 
@@ -56,6 +64,58 @@ sub system_requires
   
   \%requires;
 }
+
+my $hooks = \%Alien::Install::Util::hooks;
+
+sub call_hooks
+{
+  my($class, $name, @args) = @_;
+  # TODO probably could cache the hooks that we need for each class..
+  foreach my $role (keys %$hooks)
+  {
+    if($class->isa($role) || $class->does($role))
+    {
+      if(exists $hooks->{$role}->{$name})
+      {
+        $_->($class, @args) for @{ $hooks->{$role}->{$name} };
+      }
+    }
+  }
+}
+
+register_hook 'post_install' => sub {
+  my($class, $prefix) = @_;
+
+  foreach my $name ($^O =~ /^(MSWin32|cygwin)$/ ? ('bin','lib') : ('lib'))
+  {
+    do {
+      my $static_dir = catdir($prefix, $name);
+      my $dll_dir    = catdir($prefix, 'dll');
+      require File::Path;
+      File::Path::mkpath($dll_dir, 0, 0755);
+      my $dh;
+      opendir $dh, $static_dir;
+      my @list = readdir $dh;
+      @list = grep { /\.so/ || /\.(dylib|la|dll|dll\.a)$/ } grep !/^\./, @list;
+      closedir $dh;
+      foreach my $basename (@list)
+      {
+        my $from = catfile($static_dir, $basename);
+        my $to   = catfile($dll_dir,    $basename);
+        if(-l $from)
+        {
+          symlink(readlink $from, $to);
+          unlink($from);
+        }
+        else
+        {
+          require File::Copy;
+          File::Copy::move($from, $to);
+        }
+      }
+    };
+  }
+};
 
 sub error { shift->{error} }
 

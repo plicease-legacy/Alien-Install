@@ -1,6 +1,10 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+  - Major internal reorganization to use Alien::Install
+  - tar option on build_install is deprecated in favor of archive
+    both will work until at least December 31, 2014, at which point
+    tar *may* be removed
 
 0.08      2014-06-22 09:25:19 -0400
   - promote to production

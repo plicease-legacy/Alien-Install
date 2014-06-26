@@ -8,7 +8,7 @@ use base qw( Exporter );
 # ABSTRACT: Common utilities for Alien::Install roles and classes
 # VERSION
 
-our @EXPORT_OK = qw( catfile catdir register_build_requires );
+our @EXPORT_OK = qw( catfile catdir register_build_requires register_hook );
 our @EXPORT    = @EXPORT_OK;
 
 sub catfile (@)
@@ -51,6 +51,15 @@ sub register_system_requires (@)
   {
     $system_requires{$class}->{$mod} = $ver;
   }
+}
+
+our %hooks;
+
+sub register_hook ($$)
+{
+  my($name, $sub) = @_;
+  my $class = caller;
+  push @{ $hooks{$class}->{$name} }, $sub;
 }
 
 1;
