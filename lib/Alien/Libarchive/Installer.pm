@@ -3,13 +3,17 @@ package Alien::Libarchive::Installer;
 use strict;
 use warnings;
 use Role::Tiny::With;
+use Alien::Install::Util;
 use Carp qw( carp );
 
 # ABSTRACT: Installer for libarchive
 # VERSION
 
-with 'Alien::Install::Role::Download::HTTP';
-with 'Alien::Install::Role::Build::Autoconf';
+with qw(
+  Alien::Install::Role::Installer
+  Alien::Install::Role::Download::HTTP
+  Alien::Install::Role::Build::Autoconf
+);
 
 =head1 SYNOPSIS
 
@@ -154,43 +158,10 @@ Version to download
 
 =cut
 
-sub fetch
+sub fetch_url
 {
-  my($class, %options) = @_;
-  
-  my $dir = $options{dir} || eval { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
-
-  require HTTP::Tiny;  
-  my $version = $options{version} || do {
-    my @versions = $class->versions;
-    die "unable to determine latest version from listing"
-      unless @versions > 0;
-    $versions[-1];
-  };
-
-  if(defined $ENV{ALIEN_LIBARCHIVE_INSTALL_MIRROR})
-  {
-    my $fn = File::Spec->catfile($ENV{ALIEN_LIBARCHIVE_INSTALL_MIRROR}, "libarchive-$version.tar.gz");
-    return wantarray ? ($fn, $version) : $fn;
-  }
-
-  my $url = "http://www.libarchive.org/downloads/libarchive-$version.tar.gz";
-  
-  my $response = HTTP::Tiny->new->get($url);
-  
-  die sprintf("%s %s %s", $response->{status}, $response->{reason}, $url)
-    unless $response->{success};
-  
-  require File::Spec;
-  
-  my $fn = File::Spec->catfile($dir, "libarchive-$version.tar.gz");
-  
-  open my $fh, '>', $fn;
-  binmode $fh;
-  print $fh $response->{content};
-  close $fh;
-  
-  wantarray ? ($fn, $version) : $fn;
+  my(undef, $version) = @_;
+  "http://www.libarchive.org/downloads/libarchive-$version.tar.gz";
 }
 
 =head2 build_requires
@@ -209,28 +180,21 @@ platform.
 
 =cut
 
-sub build_requires
+register_build_requires 'Archive::Tar' => 0;
+
+if($^O eq 'MSWin32')
 {
-  my %prereqs = (
-    'HTTP::Tiny'   => 0,
-    'Archive::Tar' => 0,
-  );
-  
-  if($^O eq 'MSWin32')
+  if($Config::Config{cc} =~ /cl(\.exe)?$/i)
   {
-    require Config;
-    if($Config::Config{cc} =~ /cl(\.exe)?$/i)
-    {
-      $prereqs{'Alien::CMake'} = '0.05';
-    }
-    else
-    {
-      $prereqs{'Alien::MSYS'} = '0.07';
-      $prereqs{'PkgConfig'}   = '0.07620';
-    }
+    register_build_requires 'Alien::CMake' => '0.05';
   }
-  
-  \%prereqs;
+  else
+  {
+    register_build_requires
+      'Alien::MSYS' => '0.07',
+      'PkgConfig'   => '0.07620',
+    ;
+  }
 }
 
 =head2 system_requires
@@ -238,14 +202,6 @@ sub build_requires
 This is like L<build_requires|Alien::Libarchive::Installer#build_requires>,
 except it is used when using the libarchive that comes with the operating
 system.
-
-=cut
-
-sub system_requires
-{
-  my %prereqs = ();
-  \%prereqs;
-}
 
 =head2 system_install
 

@@ -11,6 +11,7 @@ pod_spelling_system:
     - DLL
     - dlls
     - ffi
+    - Autoconf
 
 pod_coverage:
   skip: 0
@@ -18,7 +19,7 @@ pod_coverage:
   # for either Class or method.
   private:
     - Alien::Install.*
-    - Alien::Libarchive::Installer#(versions_available|versions_process|versions_sort|versions_url)
+    - Alien::[A-Za-z]+::Installer#(versions_available|versions_process|versions_sort|versions_url|fetch_url)
 
 unused_vars:
   skip: 0

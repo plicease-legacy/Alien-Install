@@ -1,4 +1,5 @@
 Carp
+Exporter
 ExtUtils::CBuilder
 Module::Build
 Role::Tiny
