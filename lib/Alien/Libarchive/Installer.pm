@@ -11,8 +11,8 @@ use Carp qw( carp );
 
 with qw(
   Alien::Install::Role::Installer
-  Alien::Install::Role::Download::HTTP
-  Alien::Install::Role::Build::Autoconf
+  Alien::Install::Role::HTTP
+  Alien::Install::Role::Autoconf
 );
 
 =head1 SYNOPSIS

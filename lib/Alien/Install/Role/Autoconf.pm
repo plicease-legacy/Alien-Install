@@ -1,4 +1,4 @@
-package Alien::Install::Role::Build::Autoconf;
+package Alien::Install::Role::Autoconf;
 
 use strict;
 use warnings;

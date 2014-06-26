@@ -1,4 +1,4 @@
-package Alien::Install::Role::Download::HTTP;
+package Alien::Install::Role::HTTP;
 
 use strict;
 use warnings;
