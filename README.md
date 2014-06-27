@@ -189,9 +189,9 @@ instance of [Alien::Libarchive::Installer](https://metacpan.org/pod/Alien::Libar
 
 These options may be passed into build\_install:
 
-- tar
+- archive
 
-    Filename where the libarchive source tar is located.
+    Filename where the libarchive source tarball is located.
     If not specified the latest version will be downloaded
     from the Internet.
 

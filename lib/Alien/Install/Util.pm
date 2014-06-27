@@ -8,8 +8,12 @@ use base qw( Exporter );
 # ABSTRACT: Common utilities for Alien::Install roles and classes
 # VERSION
 
-our @EXPORT_OK = qw( catfile catdir spew register_build_requires register_system_requires register_hook );
+our @EXPORT_OK = qw( catfile catdir catpath splitpath splitdir rootdir spew register_build_requires register_system_requires register_hook );
 our @EXPORT    = @EXPORT_OK;
+
+=head2 catfile
+
+=cut
 
 sub catfile (@)
 {
@@ -18,9 +22,61 @@ sub catfile (@)
   $name;
 }
 
+=head2 catdir
+
+=cut
+
 sub catdir (@)
 {
   my $name = File::Spec->catdir(@_);
+  $name =~ s{\\}{/}g if $^O eq 'MSWin32';
+  $name;
+}
+
+=head2 catpath
+
+=cut
+
+sub catpath ($$;$)
+{
+  my $name = File::Spec->catpath(@_);
+  $name =~ s{\\}{/}g if $^O eq 'MSWin32';
+  $name;
+}
+
+=head2 splitpath
+
+=cut
+
+sub splitpath ($;$)
+{
+  my($path, $no_file) = @_;
+  File::Spec->splitpath($path, $no_file);
+}
+
+=head2 splitdir
+
+=cut
+
+sub splitdir ($)
+{
+  my($dirs) = @_;
+  File::Spec->splitdir($dirs);
+}
+
+=head2 rootdir
+
+These functions work just like their L<File::Spec>
+equivalent, except they are functions instead of
+class members, and on windows they use C</> instead
+of C<\> (the latter can sometimes cause problems
+as it is also used as an escaping character).
+
+=cut
+
+sub rootdir ()
+{
+  my $name = File::Spec->rootdir;
   $name =~ s{\\}{/}g if $^O eq 'MSWin32';
   $name;
 }

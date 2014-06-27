@@ -13,6 +13,10 @@ pod_spelling_system:
     - ffi
     - Autoconf
     - CMake
+    - catdir
+    - catpath
+    - splitdir
+    - splitpath
 
 pod_coverage:
   skip: 0

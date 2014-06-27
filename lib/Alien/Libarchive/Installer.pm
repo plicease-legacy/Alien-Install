@@ -269,11 +269,10 @@ sub system_install
   {
     my $alien = Alien::Libarchive->new;
     
-    require File::Spec;
     my $dir;
     my(@dlls) = map { 
-      my($v,$d,$f) = File::Spec->splitpath($_); 
-      $dir = [$v,File::Spec->splitdir($d)]; 
+      my($v,$d,$f) = splitpath $_; 
+      $dir = [$v,splitdir $d]; 
       $f;
     } $alien->dlls;
     
@@ -282,7 +281,7 @@ sub system_install
       libs    => [$alien->libs],
       dll_dir => $dir,
       dlls    => \@dlls,
-      prefix  => File::Spec->rootdir,
+      prefix  => rootdir,
     }, $class;
     eval {
       $build->test_compile_run || die $build->error if $options{test} =~ /^(compile|both)$/;
@@ -334,9 +333,8 @@ sub system_install
         {
           next unless $file =~ /^libarchive\.(dylib|so(\.[0-9]+)*)$/;
         }
-        require File::Spec;
-        my($v,$d) = File::Spec->splitpath($dir, 1);
-        $build->{dll_dir} = [File::Spec->splitdir($d)];
+        my($v,$d) = splitpath $dir, 1;
+        $build->{dll_dir} = [splitdir $d];
         $build->{prefix}  = $v;
         $build->{dlls}    = [$file];
         closedir $dh;
@@ -444,8 +442,8 @@ sub _try_pkg_config
 sub build_install_cflags
 {
   my(undef, $prefix) = @_;
-  my $pkg_config_dir = catdir($prefix, 'lib', 'pkgconfig');
-  my @flags = _try_pkg_config($pkg_config_dir, 'cflags', '-I' . File::Spec->catdir($prefix, 'include'), '--static');
+  my $pkg_config_dir = catdir $prefix, 'lib', 'pkgconfig';
+  my @flags = _try_pkg_config($pkg_config_dir, 'cflags', '-I' . catdir($prefix, 'include'), '--static');
   push @flags, '-DLIBARCHIVE_STATIC' if $^O =~ /^(cygwin|MSWin32)$/;
   @flags;
 }
@@ -453,22 +451,22 @@ sub build_install_cflags
 sub build_install_libs
 {
   my(undef, $prefix) = @_;
-  my $pkg_config_dir = catdir($prefix, 'lib', 'pkgconfig');
-  _try_pkg_config($pkg_config_dir, 'libs',   '-L' . File::Spec->catdir($prefix, 'lib'), '--static');
+  my $pkg_config_dir = catdir $prefix, 'lib', 'pkgconfig';
+  _try_pkg_config($pkg_config_dir, 'libs',   '-L' . catdir($prefix, 'lib'), '--static');
 }
 
 sub build_install_dlls
 {
   my(undef, $dir) = @_;
   opendir(my $dh, $dir);
-  [grep { ! -l catfile($dir, $_) } grep { /\.so/ || /\.(dll|dylib)$/ } grep !/^\./, readdir $dh];
+  [grep { ! -l catfile $dir, $_ } grep { /\.so/ || /\.(dll|dylib)$/ } grep !/^\./, readdir $dh];
 }
 
 register_hook post_install => sub {
   my($class, $prefix) = @_;
 
-  my $pkg_config_dir = catdir($prefix, 'lib', 'pkgconfig');
-  my $pcfile = catfile($pkg_config_dir, 'libarchive.pc');
+  my $pkg_config_dir = catdir $prefix, 'lib', 'pkgconfig';
+  my $pcfile = catfile $pkg_config_dir, 'libarchive.pc';
     
   my @content;
   require Config;
@@ -567,8 +565,7 @@ sub dlls
       $self->{libs} = [ $self->{libs} ] unless ref $self->{libs};
       my $path = DynaLoader::dl_findfile(grep /^-l/, @{ $self->libs });
       die "unable to find dynamic library" unless defined $path;
-      require File::Spec;
-      my($vol, $dirs, $file) = File::Spec->splitpath($path);
+      my($vol, $dirs, $file) = splitpath $path;
       if($^O eq 'openbsd')
       {
         # on openbsd we get the .a file back, so have to scan
@@ -582,12 +579,11 @@ sub dlls
         $self->{dlls} = [ $file ];
       }
       $self->{dll_dir} = [];
-      $self->{prefix} = $prefix = File::Spec->catpath($vol, $dirs);
+      $self->{prefix} = $prefix = catpath($vol, $dirs);
     }
   }
   
-  require File::Spec;
-  map { File::Spec->catfile($prefix, @{ $self->{dll_dir} }, $_ ) } @{ $self->{dlls} };
+  map { catfile $prefix, @{ $self->{dll_dir} }, $_  } @{ $self->{dlls} };
 }
 
 =head1 INSTANCE METHODS
