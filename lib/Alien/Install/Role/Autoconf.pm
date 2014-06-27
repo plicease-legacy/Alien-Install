@@ -13,9 +13,6 @@ requires 'extract';
 requires 'chdir_source';
 requires 'test_compile_run';
 requires 'test_ffi';
-requires 'build_install_cflags';
-requires 'build_install_libs';
-requires 'build_install_dlls';
 
 register_build_requires 'Alien::MSYS' => '0.07'
   if $^O eq 'MSWin32';
@@ -31,8 +28,6 @@ sub _msys
   require Config;
   $sub->($Config::Config{make});
 }
-
-sub configure_arguments { ('--with-pic') };
 
 sub build_install
 {
@@ -63,24 +58,43 @@ sub build_install
   
     _msys(sub {
       my($make) = @_;
-      system 'sh', 'configure', "--prefix=$prefix", $class->configure_arguments;
+      
+      my @extra;
+      push @extra, $class->_config_configure_arguments
+        if $class->can('_config_configure_arguments');      
+      system 'sh', 'configure', "--prefix=$prefix", "--with-pic", @extra;
       die "configure failed" if $?;
+      
       system $make, 'all';
       die "make all failed" if $?;
+      
       $class->call_hooks('post_build', $dir, $prefix);
+      
       system $make, 'install';
       die "make install failed" if $?;
     });
 
     $class->call_hooks('post_install', $prefix);
-    
-    my $build = bless {
-      cflags  => $class->build_install_cflags($prefix),
-      libs    => $class->build_install_libs($prefix),
+
+    my %flags = (
       prefix  => $prefix,
       dll_dir => [ 'dll' ],
-      dlls    => $class->build_install_dlls(catdir($prefix, 'dll')),
-    }, $class;
+      cflags  => ['-I' . catdir($prefix, 'include')],
+      libs    => ['-L' . catdir($prefix, 'lib')],
+      dlls    => do {
+        opendir(my $dh, catdir($prefix, 'dll'));
+        [grep { ! -l catfile $dir, $_ } grep { /\.so/ || /\.(dll|dylib)$/ } grep !/^\./, readdir $dh];
+      },
+    );
+
+    if($class->can('_config_libname'))
+    {
+      push @{ $flags{libs } }, '-l' . $class->_config_libname;
+    }
+
+    $class->call_hooks('pre_instantiate', \%flags);
+    
+    my $build = bless { %flags }, $class;
 
     $class->call_hooks('post_instantiate');
     

@@ -111,6 +111,9 @@ register_hook 'post_install' => sub {
   }
 };
 
-sub error { shift->{error} }
+sub error   { shift->{error}   }
+sub cflags  { shift->{cflags}  }
+sub libs    { shift->{libs}    }
+sub version { shift->{version} }
 
 1;

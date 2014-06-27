@@ -3,12 +3,18 @@ package Alien::Install::Util;
 use strict;
 use warnings;
 use File::Spec;
+use Carp qw( croak );
 use base qw( Exporter );
 
 # ABSTRACT: Common utilities for Alien::Install roles and classes
 # VERSION
 
-our @EXPORT_OK = qw( catfile catdir catpath splitpath splitdir rootdir spew register_build_requires register_system_requires register_hook );
+our @EXPORT_OK = qw( 
+  catfile catdir catpath splitpath splitdir rootdir 
+  spew 
+  register_build_requires register_system_requires register_hook 
+  config
+);
 our @EXPORT    = @EXPORT_OK;
 
 =head2 catfile
@@ -124,6 +130,25 @@ sub spew ($$)
   open my $fh, '>', $filename;
   print $fh $content;
   close $fh;
+}
+
+sub config (@)
+{
+  croak "requires even number of argumens"
+    if @_ % 2;
+  
+  my $caller = caller;
+  
+  while(@_ > 0)
+  {
+    my $key  = shift;
+    my $value = shift;
+    my $name = "_config_$key";
+    do {
+      no strict 'refs';
+      *{"$caller\::$name"} = sub ($) { $value };
+    };
+  }
 }
 
 1;

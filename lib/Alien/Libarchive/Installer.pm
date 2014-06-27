@@ -9,6 +9,35 @@ use Carp qw( carp );
 # ABSTRACT: Installer for libarchive
 # VERSION
 
+config
+  versions_url     => 'http://www.libarchive.org/downloads/',
+  versions_process => sub {
+    my($content) = @_;
+    my @versions;
+    push @versions, "$1.$2.$3" while $content =~ /libarchive-([1-9][0-9]*)\.([0-9]+)\.([0-9]+)\.tar.gz/g;
+    @versions;
+  },
+  versions_sort    => sub {
+    shift; # $class
+    map { join '.', @$_ } 
+    sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] || $a->[2] <=> $b->[2] } 
+    map { [split /\./, $_] }
+    @_;
+  },
+  fetch_url        => sub {
+    my(undef, $version) = @_;
+    "http://www.libarchive.org/downloads/libarchive-$version.tar.gz";
+  },
+;
+
+register_hook 'pre_instantiate' => sub {
+  my($class, $flags) = @_;
+  my $pkg_config_dir = catdir $flags->{prefix}, 'lib', 'pkgconfig';
+  push @{ $flags->{cflags} }, @{ _try_pkg_config($pkg_config_dir, 'cflags', '', '--static') };
+  push @{ $flags->{cflags} }, '-DLIBARCHIVE_STATIC' if $^O =~ /^(cygwin|MSWin32)$/;
+  push @{ $flags->{libs} }, @{ _try_pkg_config($pkg_config_dir, 'libs',   '-larchive', '--static') };
+};
+
 if($^O eq 'MSWin32' && do { require Config; $Config::Config{cc} =~ /cl(\.exe)?$/i })
 {
   with qw(
@@ -123,32 +152,6 @@ Return the list of versions of libarchive available on the Internet.
 Will throw an exception if the libarchive.org website is unreachable.
 Versions will be sorted from oldest (smallest) to newest (largest).
 
-=cut
-
-use constant versions_url => 'http://www.libarchive.org/downloads/';
-
-sub versions_process
-{
-  sub {
-    my($content) = @_;
-    my @versions;
-    push @versions, [$1,$2,$3] while $content =~ /libarchive-([1-9][0-9]*)\.([0-9]+)\.([0-9]+)\.tar.gz/g;
-    @versions;
-  }
-}
-
-sub versions_sort
-{
-  shift; # $class
-  map { join '.', @$_ } sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] || $a->[2] <=> $b->[2] } @_;
-}
-
-sub versions_available
-{
-  carp "versions_available is deprecated, please use versions instead";
-  shift->versions(@_);
-}
-
 =head2 fetch
 
  my($location, $version) = Alien::Libarchive::Installer->fetch(%options);
@@ -174,14 +177,6 @@ Directory to download to
 Version to download
 
 =back
-
-=cut
-
-sub fetch_url
-{
-  my(undef, $version) = @_;
-  "http://www.libarchive.org/downloads/libarchive-$version.tar.gz";
-}
 
 =head2 build_requires
 
@@ -437,29 +432,6 @@ sub _try_pkg_config
   chomp $value;
   require Text::ParseWords;
   [Text::ParseWords::shellwords($value)];
-}
-
-sub build_install_cflags
-{
-  my(undef, $prefix) = @_;
-  my $pkg_config_dir = catdir $prefix, 'lib', 'pkgconfig';
-  my @flags = _try_pkg_config($pkg_config_dir, 'cflags', '-I' . catdir($prefix, 'include'), '--static');
-  push @flags, '-DLIBARCHIVE_STATIC' if $^O =~ /^(cygwin|MSWin32)$/;
-  @flags;
-}
-
-sub build_install_libs
-{
-  my(undef, $prefix) = @_;
-  my $pkg_config_dir = catdir $prefix, 'lib', 'pkgconfig';
-  _try_pkg_config($pkg_config_dir, 'libs',   '-L' . catdir($prefix, 'lib'), '--static');
-}
-
-sub build_install_dlls
-{
-  my(undef, $dir) = @_;
-  opendir(my $dh, $dir);
-  [grep { ! -l catfile $dir, $_ } grep { /\.so/ || /\.(dll|dylib)$/ } grep !/^\./, readdir $dh];
 }
 
 register_hook post_install => sub {
