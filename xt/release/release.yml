@@ -20,7 +20,7 @@ pod_coverage:
   # for either Class or method.
   private:
     - Alien::Install.*
-    - Alien::[A-Za-z]+::Installer#(versions_available|versions_process|versions_sort|versions_url|fetch_url|build_install_cflags|build_install_libs|build_install_dlls|test_compile_run_program)
+    - Alien::[A-Za-z]+::Installer#(versions_available|versions_process|versions_sort|versions_url|fetch_url|build_install_cflags|build_install_libs|build_install_dlls|test_compile_run_program|test_ffi_signature|test_ffi_version)
 
 unused_vars:
   skip: 0

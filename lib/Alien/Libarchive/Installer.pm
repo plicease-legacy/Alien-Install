@@ -17,6 +17,7 @@ if($^O eq 'MSWin32' && do { require Config; $Config::Config{cc} =~ /cl(\.exe)?$/
     Alien::Install::Role::Tar 
     Alien::Install::Role::CMake
     Alien::Install::Role::TestCompileRun
+    Alien::Install::Role::TestFFI
   );
 }
 else
@@ -27,6 +28,7 @@ else
     Alien::Install::Role::Tar 
     Alien::Install::Role::Autoconf
     Alien::Install::Role::TestCompileRun
+    Alien::Install::Role::TestFFI
   );
   
   register_build_requires 'PkgConfig'   => '0.07620' if $^O eq 'MSWin32';
@@ -253,6 +255,7 @@ want.
 
 =cut
 
+# TODO: move to Alien::Install::*
 sub system_install
 {
   my($class, %options) = @_;
@@ -364,9 +367,9 @@ These options may be passed into build_install:
 
 =over 4
 
-=item tar
+=item archive
 
-Filename where the libarchive source tar is located.
+Filename where the libarchive source tarball is located.
 If not specified the latest version will be downloaded
 from the Internet.
 
@@ -442,14 +445,16 @@ sub build_install_cflags
 {
   my(undef, $prefix) = @_;
   my $pkg_config_dir = catdir($prefix, 'lib', 'pkgconfig');
-  _try_pkg_config($pkg_config_dir, 'cflags', '-I' . File::Spec->catdir($prefix, 'include'), '--static')
+  my @flags = _try_pkg_config($pkg_config_dir, 'cflags', '-I' . File::Spec->catdir($prefix, 'include'), '--static');
+  push @flags, '-DLIBARCHIVE_STATIC' if $^O =~ /^(cygwin|MSWin32)$/;
+  @flags;
 }
 
 sub build_install_libs
 {
   my(undef, $prefix) = @_;
   my $pkg_config_dir = catdir($prefix, 'lib', 'pkgconfig');
-  _try_pkg_config($pkg_config_dir, 'libs',   '-L' . File::Spec->catdir($prefix, 'lib'),     '--static')
+  _try_pkg_config($pkg_config_dir, 'libs',   '-L' . File::Spec->catdir($prefix, 'lib'), '--static');
 }
 
 sub build_install_dlls
@@ -533,6 +538,8 @@ be used by L<FFI::Raw> or similar.
 The version of libarchive
 
 =cut
+
+# TODO: move to Alien::Install::*
 
 sub dlls
 {
@@ -660,28 +667,17 @@ version.
 
 =cut
 
-sub test_ffi
+sub test_ffi_signature
 {
-  my($self) = @_;
   require FFI::Raw;
-  delete $self->{error};
+  ('archive_version_number', FFI::Raw::int());
+}
 
-  foreach my $dll ($self->dlls)
-  {
-    my $archive_version_number = eval {
-      FFI::Raw->new(
-        $dll, 'archive_version_number',
-        FFI::Raw::int(),
-      );
-    };
-    next if $@;
-    if($archive_version_number->() =~ /^([0-9]+)([0-9]{3})([0-9]{3})/)
-    {
-      return $self->{version} = join '.', map { int } $1, $2, $3;
-    }
-  }
-  $self->{error} = 'could not find archive_version_number';
-  return; 
+sub test_ffi_version
+{
+  my(undef, $function) = @_;
+  return join '.', map { int } $1, $2, $3 if $function->() =~ /^([0-9]+)([0-9]{3})([0-9]{3})/;
+  return;
 }
 
 =head2 error

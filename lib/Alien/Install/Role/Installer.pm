@@ -13,13 +13,7 @@ requires 'fetch';
 requires 'extract';
 requires 'chdir_source';
 requires 'test_compile_run';
-
-sub test_ffi
-{
-  my($self) = @_;
-  my $class = ref($self) || $self;
-  die "test_ffi not implemented for $class";
-}
+requires 'test_ffi';
 
 my $build_requires = \%Alien::Install::Util::build_requires;
 

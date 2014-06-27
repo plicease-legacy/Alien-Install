@@ -5,7 +5,7 @@ use warnings;
 use Role::Tiny;
 use Alien::Install::Util;
 
-# ABSTRACT: Test alien compile role
+# ABSTRACT: Test compile alien role
 # VERSION
 
 requires 'error';
