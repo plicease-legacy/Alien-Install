@@ -19,6 +19,8 @@ pod_spelling_system:
     - splitpath
     - bz
     - bzip
+    - oberhumer
+    - lzo
 
 pod_coverage:
   skip: 0
