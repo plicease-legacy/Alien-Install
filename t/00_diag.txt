@@ -2,6 +2,7 @@ Alien::CMake
 Alien::Libarchive
 Alien::MSYS
 Alien::bz2
+Archive::Ar
 Archive::Tar
 Archive::Zip
 ExtUtils::CBuilder
