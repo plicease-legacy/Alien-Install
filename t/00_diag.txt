@@ -1,8 +1,13 @@
-Carp
-Exporter
+Alien::CMake
+Alien::Libarchive
+Alien::MSYS
+Alien::bz2
+Archive::Tar
+Archive::Zip
 ExtUtils::CBuilder
+FFI::Raw
+HTTP::Tiny
 Module::Build
+PkgConfig
 Role::Tiny
-Role::Tiny::With
 Test::More
-constant
