@@ -1,10 +1,14 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.08_01   2014-06-26 22:28:00 -0400
+  - Combining Alien::Libarchive::Installer and
+    Alien::bz2::Installer into one distro
   - Major internal reorganization to use Alien::Install
   - tar option on build_install is deprecated in favor of archive
     both will work until at least December 31, 2014, at which point
-    tar *may* be removed
+    tar may be removed
 
 0.08      2014-06-22 09:25:19 -0400
   - promote to production
