@@ -121,6 +121,10 @@ FFI::Raw
 
 =head1 DESCRIPTION
 
+B<Note>: I am in the process of refactoring this into a more generic
+set of roles that can be used for other "installer" classes.  Until
+the refactoring process is complete it will be quite messy in here.
+
 This distribution contains the logic for finding existing libarchive
 installs, and building new ones.  If you do not care much about the
 version of libarchive that you use, and libarchive is not an optional

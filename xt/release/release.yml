@@ -21,6 +21,7 @@ pod_spelling_system:
     - bzip
     - oberhumer
     - lzo
+    - refactoring
 
 pod_coverage:
   skip: 0
