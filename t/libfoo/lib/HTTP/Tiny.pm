@@ -3,6 +3,8 @@ package
 
 use strict;
 use warnings;
+use FindBin ();
+use File::Spec;
 
 sub new
 {
@@ -24,6 +26,33 @@ sub get
     };
   }
   
+  if($url =~ m{^http://dist.wdlabs.com/(.*?)$})
+  {
+    my $fn = $1;
+    if($fn eq 'libfoo-1.00.tar.gz')
+    {
+      my $fh;
+      open($fh, '<', File::Spec->catfile($FindBin::Bin, $fn));
+      binmode $fh;
+      my $content = do { local $/; <$fh> };
+      close $fh;
+      return {
+        success => 1,
+        content => $content,
+      };
+    }
+    else
+    {
+      return {
+        success => '',
+        content => "Not Found",
+        reason  => "Not Found",
+        status  => 404,
+        url     => $url,
+      };
+    }
+  }
+  
   die "unimplemented for $url";
 }
 
@@ -42,3 +71,4 @@ __DATA__
     </ul>
   </body>
 </html>
+

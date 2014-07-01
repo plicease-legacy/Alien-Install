@@ -128,6 +128,7 @@ sub spew ($$)
 {
   my($filename, $content) = @_;
   open my $fh, '>', $filename;
+  binmode $fh;
   print $fh $content;
   close $fh;
 }
@@ -136,6 +137,7 @@ sub slurp ($)
 {
   my($filename) = @_;
   open my $fh, '<', $filename;
+  binmode $fh;
   local $/;
   my $data = <$fh>;
   close $fh;
