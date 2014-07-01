@@ -65,13 +65,23 @@ sub call_hooks
 {
   my($class, $name, @args) = @_;
   # TODO probably could cache the hooks that we need for each class..
-  foreach my $role (keys %$hooks)
+  foreach my $role (sort keys %$hooks)
   {
-    if($class->isa($role) || $class->does($role))
+    if($class->does($role))
     {
       if(exists $hooks->{$role}->{$name})
       {
         $_->($class, @args) for @{ $hooks->{$role}->{$name} };
+      }
+    }
+  }
+  foreach my $other (sort keys %$hooks)
+  {
+    if($class->isa($other))
+    {
+      if(exists $hooks->{$other}->{$name})
+      {
+        $_->($class, @args) for @{ $hooks->{$other}->{$name} };
       }
     }
   }
