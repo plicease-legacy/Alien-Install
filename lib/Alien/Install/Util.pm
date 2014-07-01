@@ -11,7 +11,7 @@ use base qw( Exporter );
 
 our @EXPORT_OK = qw( 
   catfile catdir catpath splitpath splitdir rootdir 
-  spew 
+  spew slurp
   register_build_requires register_system_requires register_hook 
   config
 );
@@ -130,6 +130,16 @@ sub spew ($$)
   open my $fh, '>', $filename;
   print $fh $content;
   close $fh;
+}
+
+sub slurp ($)
+{
+  my($filename) = @_;
+  open my $fh, '<', $filename;
+  local $/;
+  my $data = <$fh>;
+  close $fh;
+  $data;
 }
 
 sub config (@)
