@@ -97,7 +97,7 @@ sub register_build_requires (@)
   my $class = caller;
   while(my($mod,$ver) = each %new)
   {
-    $build_requires{$class}->{$mod} = $ver;
+    $build_requires{$class}->{$mod} ||= $ver;
   }
 }
 
@@ -111,7 +111,7 @@ sub register_system_requires (@)
   my $class = caller;
   while(my($mod,$ver) = each %new)
   {
-    $system_requires{$class}->{$mod} = $ver;
+    $system_requires{$class}->{$mod} ||= $ver;
   }
 }
 

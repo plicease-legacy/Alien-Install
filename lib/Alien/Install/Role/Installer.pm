@@ -29,7 +29,7 @@ sub build_requires
       {
         # TODO check if this is a newer or older
         # than existing $ver
-        $requires{$mod} = $ver;
+        $requires{$mod} ||= $ver;
       }
     }
   }
@@ -51,7 +51,7 @@ sub system_requires
       {
         # TODO check if this is a newer or older
         # than existing $ver
-        $requires{$mod} = $ver;
+        $requires{$mod} ||= $ver;
       }
     }
   }
