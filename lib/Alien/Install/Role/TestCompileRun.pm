@@ -9,12 +9,10 @@ use Alien::Install::Util;
 # VERSION
 
 requires 'error';
-requires 'test_compile_run_program';
+requires '_config_test_compile_run_program';
 
 register_build_requires  'ExtUtils::CBuilder' => 0;
 register_system_requires 'ExtUtils::CBuilder' => 0;
-
-sub test_compile_run_match { qr{version = '(.*?)'} }
 
 sub test_compile_run
 {
@@ -31,7 +29,7 @@ sub test_compile_run
   
   my $dir = $opt{dir} || do { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
   my $fn = catfile($dir, 'test.c');
-  spew $fn, $self->test_compile_run_program;
+  spew $fn, $self->_config_test_compile_run_program;
   
   
   my $exe = eval {
@@ -77,7 +75,9 @@ sub test_compile_run
     $self->{error} = "child exited with value " . ($? >> 8);
   }
   
-  if($output =~ $self->test_compile_run_match)
+  my $match = $self->can('_config_test_compile_run_match') ? $self->_config_test_compile_run_match : qr{version = '(.*?)'};
+  
+  if($output =~ $match)
   {
     return $self->{version} = $1;
   }

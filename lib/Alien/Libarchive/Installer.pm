@@ -28,6 +28,19 @@ config
     my(undef, $version) = @_;
     "http://www.libarchive.org/downloads/libarchive-$version.tar.gz";
   },
+  test_compile_run_program => join ("\n",
+    "#include <archive.h>",
+    "#include <archive_entry.h>",
+    "#include <stdio.h>",
+    "int",
+    "main(int argc, char *argv[])",
+    "{",
+    "  printf(\"version = '%s'\\n\", archive_version_string());",
+    "  return 0;",
+    "}",
+    "",
+  ),
+  test_compile_run_match => qr{version = 'libarchive (.*?)'},
 ;
 
 register_hook 'pre_instantiate' => sub {
@@ -601,25 +614,6 @@ provide your own instance.  The default is true
 (unlike L<ExtUtils::CBuilder> itself).
 
 =back
-
-=cut
-
-use constant test_compile_run_program =>
-  join ("\n",
-    "#include <archive.h>",
-    "#include <archive_entry.h>",
-    "#include <stdio.h>",
-    "int",
-    "main(int argc, char *argv[])",
-    "{",
-    "  printf(\"version = '%s'\\n\", archive_version_string());",
-    "  return 0;",
-    "}",
-    "",
-  );
-;
-
-use constant test_compile_run_match => qr{version = 'libarchive (.*?)'};
 
 =head2 test_ffi
 

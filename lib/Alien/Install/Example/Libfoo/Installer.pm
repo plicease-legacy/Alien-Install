@@ -15,6 +15,16 @@ config
     my(undef, $version) = @_;
     "http://dist.wdlabs.com/libfoo-$version.tar.gz";
   },
+  test_compile_run_program => join("\n",
+    "#include <foo.h>",
+    "#include <stdio.h>",
+    "int",
+    "main(int argc, char *argv[])",
+    "{",
+    "  printf(\"version = '%s'\\n\", foo_version_string());",
+    "  return 0;",
+    "}",
+  ),
 ;
 
 with qw(
@@ -35,17 +45,6 @@ sub dlls
 {
   die 'todo';
 }
-
-use constant test_compile_run_program => join "\n",
-  "#include <foo.h>",
-  "#include <stdio.h>",
-  "int",
-  "main(int argc, char *argv[])",
-  "{",
-  "  printf(\"version = '%s'\\n\", foo_version_string());",
-  "  return 0;",
-  "}",
-;
 
 sub test_ffi_signature
 {
