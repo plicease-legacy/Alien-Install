@@ -36,9 +36,29 @@ sub dlls
   die 'todo';
 }
 
-use constant test_compile_run_program => '';
-sub test_ffi_signature { }
-sub test_ffi_version {}
+use constant test_compile_run_program => join "\n",
+  "#include <foo.h>",
+  "#include <stdio.h>",
+  "int",
+  "main(int argc, char *argv[])",
+  "{",
+  "  printf(\"version = '%s'\\n\", foo_version_string());",
+  "  return 0;",
+  "}",
+;
+
+sub test_ffi_signature
+{
+  require FFI::Raw;
+  ('foo_version_string', FFI::Raw::str());
+}
+
+
+sub test_ffi_version
+{
+  my(undef, $function) = @_;
+  $function->();
+}
 
 
 1;
