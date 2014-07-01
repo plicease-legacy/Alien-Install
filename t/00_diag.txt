@@ -2,10 +2,10 @@ Alien::CMake
 Alien::Libarchive
 Alien::MSYS
 Alien::bz2
+Archive::Ar
 Archive::Ar::Libarchive
 Archive::Tar
 Archive::Zip
-Archive:Ar
 ExtUtils::CBuilder
 FFI::Raw
 HTTP::Tiny
