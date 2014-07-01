@@ -33,13 +33,13 @@ sub versions
   
   if(ref($process) eq 'CODE')
   {
-    return $sort->($process->($response->{content}));
+    return $sort->($class, $process->($response->{content}));
   }
   elsif(ref($process) eq 'Regexp')
   {
-    my @versions;
-    push @versions, [$1,$2,$3] while $response->{content} =~ $process;
-    return $sort->(@versions);
+    my %versions;
+    $versions{$1} = 1 while $response->{content} =~ /$process/g;
+    return $sort->($class, keys %versions);
     
   }
 }
