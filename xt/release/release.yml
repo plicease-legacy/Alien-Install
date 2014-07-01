@@ -22,6 +22,7 @@ pod_spelling_system:
     - oberhumer
     - lzo
     - refactoring
+    - libfoo
 
 pod_coverage:
   skip: 0
