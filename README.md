@@ -4,6 +4,10 @@ Install your aliens
 
 # DESCRIPTION
 
+**NOTE**: This is a work in progress.  Everything here is
+subject to change until it gets released to CPAN (and to
+a lesser extent after as well).
+
 I'm working on abstracting out all the generic bits out of
 [Alien::Libarchive::Installer](https://metacpan.org/pod/Alien::Libarchive::Installer) to eventually make a
 [Alien::Install](https://metacpan.org/pod/Alien::Install) distribution.  For a few development

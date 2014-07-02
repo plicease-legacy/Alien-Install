@@ -8,6 +8,10 @@ use warnings;
 
 =head1 DESCRIPTION
 
+B<NOTE>: This is a work in progress.  Everything here is
+subject to change until it gets released to CPAN (and to
+a lesser extent after as well).
+
 I'm working on abstracting out all the generic bits out of
 L<Alien::Libarchive::Installer> to eventually make a
 L<Alien::Install> distribution.  For a few development
