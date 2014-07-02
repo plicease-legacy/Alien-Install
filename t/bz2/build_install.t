@@ -7,7 +7,7 @@ use Config;
 
 BEGIN {
   plan skip_all => "set ALIEN_BZ2_INSTALLER_EXTRA_TESTS to run test"
-    unless $ENV{TRAVIS_JOB_ID} || $ENV{ALIEN_BZ2_INSTALLER_EXTRA_TESTS};
+    unless $ENV{TRAVIS_JOB_ID} || $ENV{ALIEN_BZ2_INSTALLER_EXTRA_TESTS} || $ENV{ALIEN_INSTALL_EXTRA_TESTS};
   plan skip_all => "test requires HTTP::Tiny"
     unless eval q{ use HTTP::Tiny; 1 };
   plan skip_all => "test requires AnyEvent::Open3::Simple"
