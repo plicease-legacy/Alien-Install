@@ -77,9 +77,28 @@ with qw(
   Alien::Install::Role::TestFFI
 );
 
-sub system_install
-{
-  die 'todo';
-}
+register_hook
+  system_install_flags_guess => sub {
+    my(undef, $build) = @_;
+    my $prefix = $ENV{ALIEN_LIBFOO_PREFIX};
+    if(defined $prefix)
+    {
+      unshift @{ $build->{cflags} }, "-I$prefix/include";
+      unshift @{ $build->{libs}   }, "-L$prefix/lib";
+    }
+  }
+;
+
+register_hook
+  system_install_search_list => sub {
+    my(undef, $list) = @_;
+    my $prefix = $ENV{ALIEN_LIBFOO_PREFIX};
+    if(defined $prefix)
+    {
+      unshift @$list, catdir($prefix, 'bin');
+      unshift @$list, catdir($prefix, 'lib');
+    }
+  }
+;
 
 1;

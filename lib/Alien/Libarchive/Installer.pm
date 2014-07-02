@@ -48,6 +48,12 @@ config
     return join '.', map { int } $1, $2, $3 if $function->() =~ /^([0-9]+)([0-9]{3})([0-9]{3})/;
     return;
   },
+  alien_version => '0.21',
+  system_install_flags_guess => sub {
+    my(undef, $build) = @_;
+    $build->{cflags} = _try_pkg_config(undef, 'cflags', '', '');
+    $build->{libs}   = _try_pkg_config(undef, 'libs',   '-larchive', '');
+  },
 ;
 
 register_hook 'pre_instantiate' => sub {
@@ -82,6 +88,88 @@ else
   
   register_build_requires 'PkgConfig'   => '0.07620' if $^O eq 'MSWin32';
 }
+
+sub _try_pkg_config
+{
+  my($dir, $field, $guess, $extra) = @_;
+  
+  unless(defined $dir)
+  {
+    require File::Temp;
+    $dir = File::Temp::tempdir(CLEANUP => 1);
+  }
+  
+  require Config;
+  local $ENV{PKG_CONFIG_PATH} = join $Config::Config{path_sep}, $dir, split /$Config::Config{path_sep}/, ($ENV{PKG_CONFIG_PATH}||'');
+
+  my $value = eval {
+    # you probably think I am crazy...
+    eval q{ use PkgConfig 0.07620 };
+    die $@ if $@;
+    my $value = `$^X $INC{'PkgConfig.pm'} libarchive $extra --$field`;
+    die if $?;
+    $value;
+  };
+
+  unless(defined $value) {
+    $value = `pkg-config libarchive $extra --$field`;
+    return $guess if $?;
+  }
+  
+  chomp $value;
+  require Text::ParseWords;
+  [Text::ParseWords::shellwords($value)];
+}
+
+register_hook post_install => sub {
+  my($class, $prefix) = @_;
+
+  my $pkg_config_dir = catdir $prefix, 'lib', 'pkgconfig';
+  my $pcfile = catfile $pkg_config_dir, 'libarchive.pc';
+    
+  my @content;
+  require Config;
+  if($Config::Config{cc} !~ /cl(\.exe)?$/i)
+  {
+    open my $fh, '<', $pcfile;
+    @content = map { s{$prefix}{'${pcfiledir}/../..'}eg; $_ } do { <$fh> };
+    close $fh;
+  }
+  else
+  {
+    # TODO: later when we know the version with more
+    # certainty, we can update this file with the
+    # Version
+    @content = join "\n", "prefix=\${pcfiledir}/../..",
+                          "exec_prefix=\${prefix}",
+                          "libdir=\${exec_prefix}/lib",
+                          "includedir=\${prefix}/include",
+                          "Name: libarchive",
+                          "Description: library that can create and read several streaming archive formats",
+                          "Cflags: -I\${includedir}",
+                          "Libs: advapi32.lib \${libdir}/archive_static.lib",
+                          "Libs.private: ",
+                          "";
+    require File::Path;
+    File::Path::mkpath($pkg_config_dir, 0, 0755);
+  }
+      
+  my($version) = map { /^Version:\s*(.*)$/; $1 } grep /^Version: /, @content;
+  # older versions apparently didn't include the necessary -I and -L flags
+  if(defined $version && $version =~ /^[12]\./)
+  {
+    for(@content)
+    {
+      s/^Libs: /Libs: -L\${libdir} /;
+    }
+    push @content, "Cflags: -I\${includedir}\n";
+  }
+      
+  open my $fh, '>', $pcfile;
+  print $fh @content;
+  close $fh;
+};
+
 
 =head1 SYNOPSIS
 
@@ -272,102 +360,6 @@ want.
 
 =back
 
-=cut
-
-# TODO: move to Alien::Install::*
-sub system_install
-{
-  my($class, %options) = @_;
-
-  $options{alien} = 1 unless defined $options{alien};
-  $options{test} ||= 'compile';
-  die "test must be one of compile, ffi or both"
-    unless $options{test} =~ /^(compile|ffi|both)$/;
-
-  if($options{alien} && eval q{ use Alien::Libarchive 0.21; 1 })
-  {
-    my $alien = Alien::Libarchive->new;
-    
-    my $dir;
-    my(@dlls) = map { 
-      my($v,$d,$f) = splitpath $_; 
-      $dir = [$v,splitdir $d]; 
-      $f;
-    } $alien->dlls;
-    
-    my $build = bless {
-      cflags  => [$alien->cflags],
-      libs    => [$alien->libs],
-      dll_dir => $dir,
-      dlls    => \@dlls,
-      prefix  => rootdir,
-    }, $class;
-    eval {
-      $build->test_compile_run || die $build->error if $options{test} =~ /^(compile|both)$/;
-      $build->test_ffi || die $build->error if $options{test} =~ /^(ffi|both)$/;
-    };
-    return $build unless $@;
-  }
-  
-  my $build = bless {
-    cflags => _try_pkg_config(undef, 'cflags', '', ''),
-    libs   => _try_pkg_config(undef, 'libs',   '-larchive', ''),
-  }, $class;
-  
-  if($options{test} =~ /^(ffi|both)$/)
-  {
-    my @dir_search_list;
-    
-    if($^O eq 'MSWin32')
-    {
-      # On MSWin32 the entire path is not included in dl_library_path
-      # buth that is the most likely place that we will find dlls.
-      @dir_search_list = grep { -d $_ } split /;/, $ENV{PATH};
-    }
-    else
-    {
-      require DynaLoader;
-      @dir_search_list = grep { -d $_ } @DynaLoader::dl_library_path
-    }
-    
-    found_dll: foreach my $dir (@dir_search_list)
-    {
-      my $dh;
-      opendir($dh, $dir) || next;
-      # sort by filename length so that libarchive.so.12.0.4
-      # is preferred over libarchive.so.12 or libarchive.so
-      # if only to make diagnostics point to the more specific
-      # version.
-      foreach my $file (sort { length $b <=> length $a } readdir $dh)
-      {
-        if($^O eq 'MSWin32')
-        {
-          next unless $file =~ /^libarchive-[0-9]+\.dll$/i;
-        }
-        elsif($^O eq 'cygwin')
-        {
-          next unless $file =~ /^cygarchive-[0-9]+\.dll$/i;
-        }
-        else
-        {
-          next unless $file =~ /^libarchive\.(dylib|so(\.[0-9]+)*)$/;
-        }
-        my($v,$d) = splitpath $dir, 1;
-        $build->{dll_dir} = [splitdir $d];
-        $build->{prefix}  = $v;
-        $build->{dlls}    = [$file];
-        closedir $dh;
-        last found_dll;
-      }
-      closedir $dh;
-    }
-  }
-  
-  $build->test_compile_run || die $build->error if $options{test} =~ /^(compile|both)$/;
-  $build->test_ffi || die $build->error if $options{test} =~ /^(ffi|both)$/;
-  $build;
-}
-
 =head2 build_install
 
  my $installer = Alien::Libarchive::Installer->build_install( '/usr/local', %options );
@@ -423,89 +415,6 @@ to verify
 =back
 
 =back
-
-=cut
-
-sub _try_pkg_config
-{
-  my($dir, $field, $guess, $extra) = @_;
-  
-  unless(defined $dir)
-  {
-    require File::Temp;
-    $dir = File::Temp::tempdir(CLEANUP => 1);
-  }
-  
-  require Config;
-  local $ENV{PKG_CONFIG_PATH} = join $Config::Config{path_sep}, $dir, split /$Config::Config{path_sep}/, ($ENV{PKG_CONFIG_PATH}||'');
-
-  my $value = eval {
-    # you probably think I am crazy...
-    eval q{ use PkgConfig 0.07620 };
-    die $@ if $@;
-    my $value = `$^X $INC{'PkgConfig.pm'} libarchive $extra --$field`;
-    die if $?;
-    $value;
-  };
-
-  unless(defined $value) {
-    $value = `pkg-config libarchive $extra --$field`;
-    return $guess if $?;
-  }
-  
-  chomp $value;
-  require Text::ParseWords;
-  [Text::ParseWords::shellwords($value)];
-}
-
-register_hook post_install => sub {
-  my($class, $prefix) = @_;
-
-  my $pkg_config_dir = catdir $prefix, 'lib', 'pkgconfig';
-  my $pcfile = catfile $pkg_config_dir, 'libarchive.pc';
-    
-  my @content;
-  require Config;
-  if($Config::Config{cc} !~ /cl(\.exe)?$/i)
-  {
-    open my $fh, '<', $pcfile;
-    @content = map { s{$prefix}{'${pcfiledir}/../..'}eg; $_ } do { <$fh> };
-    close $fh;
-  }
-  else
-  {
-    # TODO: later when we know the version with more
-    # certainty, we can update this file with the
-    # Version
-    @content = join "\n", "prefix=\${pcfiledir}/../..",
-                          "exec_prefix=\${prefix}",
-                          "libdir=\${exec_prefix}/lib",
-                          "includedir=\${prefix}/include",
-                          "Name: libarchive",
-                          "Description: library that can create and read several streaming archive formats",
-                          "Cflags: -I\${includedir}",
-                          "Libs: advapi32.lib \${libdir}/archive_static.lib",
-                          "Libs.private: ",
-                          "";
-    require File::Path;
-    File::Path::mkpath($pkg_config_dir, 0, 0755);
-  }
-      
-  my($version) = map { /^Version:\s*(.*)$/; $1 } grep /^Version: /, @content;
-  # older versions apparently didn't include the necessary -I and -L flags
-  if(defined $version && $version =~ /^[12]\./)
-  {
-    for(@content)
-    {
-      s/^Libs: /Libs: -L\${libdir} /;
-    }
-    push @content, "Cflags: -I\${includedir}\n";
-  }
-      
-  open my $fh, '>', $pcfile;
-  print $fh @content;
-  close $fh;
-};
 
 =head1 ATTRIBUTES
 
