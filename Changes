@@ -1,10 +1,11 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+  - internal refactor
 
 0.08_04   2014-07-01 15:55:34 -0400
   - Add Alien::Install::Example::Libarchive::Installer
-  - incremental refactor
+  - internal refactor
 
 0.08_03   2014-06-30 06:51:20 -0400
   - Skip LZO network tests unless running under dev or travis
