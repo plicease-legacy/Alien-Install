@@ -26,6 +26,11 @@ config
     "  return 0;",
     "}",
   ),
+  test_ffi_signature => ['foo_version_string', 'str'],
+  test_ffi_version   => sub {
+    my(undef, $function) = @_;
+    $function->();
+  },
 ;
 
 with qw(
@@ -40,19 +45,6 @@ with qw(
 sub system_install
 {
   die 'todo';
-}
-
-sub test_ffi_signature
-{
-  require FFI::Raw;
-  ('foo_version_string', FFI::Raw::str());
-}
-
-
-sub test_ffi_version
-{
-  my(undef, $function) = @_;
-  $function->();
 }
 
 1;

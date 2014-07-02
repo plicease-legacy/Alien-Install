@@ -8,8 +8,8 @@ use Alien::Install::Util;
 # ABSTRACT: Test ffi alien role
 # VERSION
 
-requires 'test_ffi_signature';
-requires 'test_ffi_version';
+requires '_config_test_ffi_signature';
+requires '_config_test_ffi_version';
 
 sub test_ffi
 {
@@ -17,7 +17,9 @@ sub test_ffi
   require FFI::Raw;
   delete $self->{error};
   
-  my @sig = $self->test_ffi_signature;
+  my($name, $ret, @args) = @{ $self->_config_test_ffi_signature };
+
+  my @sig = ($name, map { my $val = eval qq{FFI::Raw::$_()}; $@ ? die $@ : $val } ($ret, @args));
   
   foreach my $dll ($self->dlls)
   {
@@ -28,7 +30,7 @@ sub test_ffi
       );
     };
     next if $@;
-    my $version = $self->test_ffi_version($function);
+    my $version = $self->_config_test_ffi_version->($self, $function);
     return $self->{version} = $version if defined $version;
   }
   $self->{error} = "could not find $sig[0]";

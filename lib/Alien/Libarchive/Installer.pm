@@ -42,6 +42,12 @@ config
     "",
   ),
   test_compile_run_match => qr{version = 'libarchive (.*?)'},
+  test_ffi_signature     => [ 'archive_version_number', 'int' ],
+  test_ffi_version       => sub {
+    my(undef, $function) = @_;
+    return join '.', map { int } $1, $2, $3 if $function->() =~ /^([0-9]+)([0-9]{3})([0-9]{3})/;
+    return;
+  },
 ;
 
 register_hook 'pre_instantiate' => sub {
@@ -580,21 +586,6 @@ provide your own instance.  The default is true
 Test libarchive to see if it can be used with L<FFI::Raw>
 (or similar).  On success it will return the libarchive
 version.
-
-=cut
-
-sub test_ffi_signature
-{
-  require FFI::Raw;
-  ('archive_version_number', FFI::Raw::int());
-}
-
-sub test_ffi_version
-{
-  my(undef, $function) = @_;
-  return join '.', map { int } $1, $2, $3 if $function->() =~ /^([0-9]+)([0-9]{3})([0-9]{3})/;
-  return;
-}
 
 =head2 error
 
