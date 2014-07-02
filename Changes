@@ -1,7 +1,9 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
-  - internal refactor
+
+0.08_05   2014-07-02 08:41:53 -0400
+  - generic implementation for dlls function
 
 0.08_04   2014-07-01 15:55:34 -0400
   - Add Alien::Install::Example::Libarchive::Installer
