@@ -20,7 +20,9 @@ config
     "main(int argc, char *argv[])",
     "{",
     # TODO: libffi doesn't seem to provide the
-    # version as part of its API
+    # version as part of its API.
+    # so will need to parse it out of the ffi.h
+    # or libffi.pc file
     "  return 0;",
     "}",
     "",
