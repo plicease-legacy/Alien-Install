@@ -8,8 +8,8 @@ use Alien::Install::Util;
 # ABSTRACT: Installer role for downloading via HTTP
 # VERSION
 
-requires '_config_versions_url';
-requires '_config_versions_process';
+requires 'alien_config_versions_url';
+requires 'alien_config_versions_process';
 
 sub _version_sort
 {
@@ -21,15 +21,15 @@ sub versions
 {
   my($class) = @_;
   require HTTP::Tiny;
-  my $url = $class->_config_versions_url;
+  my $url = $class->alien_config_versions_url;
   my $response = HTTP::Tiny->new->get($url);
   
   die sprintf("%s %s %s", $response->{status}, $response->{reason}, $url)
     unless $response->{success};
 
-  my $process = $class->_config_versions_process;
+  my $process = $class->alien_config_versions_process;
   
-  my $sort = eval { $class->_config_versions_sort } || \&_version_sort;
+  my $sort = eval { $class->alien_config_versions_sort } || \&_version_sort;
   
   if(ref($process) eq 'CODE')
   {
@@ -44,7 +44,7 @@ sub versions
   }
 }
 
-requires '_config_fetch_url';
+requires 'alien_config_fetch_url';
 
 sub fetch
 {
@@ -68,7 +68,7 @@ sub fetch
     return wantarray ? ($fn, $version) : $fn;
   }
 
-  my $url = $class->_config_fetch_url->($class, $version);
+  my $url = $class->alien_config_fetch_url->($class, $version);
   
   require HTTP::Tiny;  
   my $response = HTTP::Tiny->new->get($url);

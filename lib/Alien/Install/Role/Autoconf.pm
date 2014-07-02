@@ -60,8 +60,8 @@ sub build_install
       my($make) = @_;
       
       my @extra;
-      push @extra, $class->_config_configure_arguments
-        if $class->can('_config_configure_arguments');      
+      push @extra, $class->alien_config_configure_arguments
+        if $class->can('alien_config_configure_arguments');      
       system 'sh', 'configure', "--prefix=$prefix", "--with-pic", @extra;
       die "configure failed" if $?;
       
@@ -87,21 +87,21 @@ sub build_install
       },
     );
 
-    if($class->can('_config_name'))
+    if($class->can('alien_config_name'))
     {
-      push @{ $flags{libs } }, '-l' . $class->_config_name;
+      push @{ $flags{libs } }, '-l' . $class->alien_config_name;
     }
 
     $class->call_hooks('pre_instantiate', \%flags);
     
     my $build = bless { %flags }, $class;
 
-    $class->call_hooks('post_instantiate');
+    $build->call_hooks('post_instantiate');
     
     $build->test_compile_run || die $build->error if $options{test} =~ /^(compile|both)$/;
     $build->test_ffi         || die $build->error if $options{test} =~ /^(ffi|both)$/;
     
-    $class->call_hooks('post_test');
+    $build->call_hooks('post_test');
     
     $build;
   };

@@ -71,12 +71,12 @@ sub build_install
       dlls    => $class->build_install_dlls(catdir($prefix, 'dll')),
     }, $class;
 
-    $class->call_hooks('post_instantiate');
+    $build->call_hooks('post_instantiate');
     
     $build->test_compile_run || die $build->error if $options{test} =~ /^(compile|both)$/;
     $build->test_ffi         || die $build->error if $options{test} =~ /^(ffi|both)$/;
     
-    $class->call_hooks('post_test');
+    $build->call_hooks('post_test');
     
     $build;
   };

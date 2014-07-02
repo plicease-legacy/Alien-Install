@@ -234,7 +234,7 @@ sub config (@)
   {
     my $key  = shift;
     my $value = shift;
-    my $name = "_config_$key";
+    my $name = "alien_config_$key";
     do {
       no strict 'refs';
       *{"$caller\::$name"} = sub ($) { $value };

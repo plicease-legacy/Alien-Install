@@ -14,5 +14,5 @@ config
 package
   main;
 
-is(Alien::Libfoo::Installer->_config_foo, 'hi there', 'value');
-is(Alien::Libfoo::Installer->_config_bar->(2), 4, 'function');
+is(Alien::Libfoo::Installer->alien_config_foo, 'hi there', 'value');
+is(Alien::Libfoo::Installer->alien_config_bar->(2), 4, 'function');

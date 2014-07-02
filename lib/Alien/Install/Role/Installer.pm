@@ -14,7 +14,7 @@ requires 'extract';
 requires 'chdir_source';
 requires 'test_compile_run';
 requires 'test_ffi';
-requires '_config_name';
+requires 'alien_config_name';
 
 my $build_requires = \%Alien::Install::Util::build_requires;
 
@@ -131,7 +131,7 @@ sub dlls
 {
   my($self, $prefix) = @_;
   
-  my $name = $self->_config_name;
+  my $name = $self->alien_config_name;
   $prefix = $self->{prefix} unless defined $prefix;
   
   unless(defined $self->{dlls} && defined $self->{dll_dir})
