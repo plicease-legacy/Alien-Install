@@ -3,6 +3,7 @@ use warnings;
 use ExtUtils::CBuilder;
 use Test::More;
 use Alien::Install::Example::Libfoo::Installer;
+use File::Temp qw( tempdir );
 
 my $prefix = $ENV{ALIEN_LIBFOO_PREFIX} || tempdir( CLEANUP => 1);
 

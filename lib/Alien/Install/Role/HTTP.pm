@@ -59,15 +59,6 @@ sub fetch
     $versions[-1];
   };
   
-  my $env = uc $class;
-  $env =~ s/::/_/g;
-
-  if(defined $ENV{"$env\_MIRROR"})
-  {
-    my $fn = catfile($ENV{"$env\_MIRROR"}, "libarchive-$version.tar.gz");
-    return wantarray ? ($fn, $version) : $fn;
-  }
-
   my $url = $class->alien_config_fetch_url->($class, $version);
   
   require HTTP::Tiny;  

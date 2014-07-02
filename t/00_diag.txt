@@ -10,6 +10,7 @@ ExtUtils::CBuilder
 FFI::Raw
 HTTP::Tiny
 Module::Build
+Net::FTP
 PkgConfig
 Role::Tiny
 Test::More

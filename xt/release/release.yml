@@ -26,6 +26,7 @@ pod_spelling_system:
     - alienize
     - arounds
     - reinstalling
+    - libffi
 
 pod_coverage:
   skip: 0
