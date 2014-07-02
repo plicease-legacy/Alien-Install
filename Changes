@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+  - generic implementation for system_install function
 
 0.08_05   2014-07-02 08:41:53 -0400
   - generic implementation for dlls function
