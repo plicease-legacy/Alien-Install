@@ -8,6 +8,41 @@ use Alien::Install::Util;
 # ABSTRACT: Example installer for libfoo
 # VERSION
 
+=head1 SYNOPSIS
+
+Build.PL
+
+ # as an optional dep
+ use Alien::Install::Example::Libfoo::Installer;
+ use Module::Build;
+ 
+ my %build_args;
+ 
+ my $installer = eval { Alien::Install::Example::Libfoo::Installer };
+ if($installer)
+ {
+   $build_args{extra_compiler_flags} = $installer->cflags;
+   $build_args{extra_linker_flags}   = $installer->libs;
+ }
+ 
+ my $build = Module::Build->new(%build_args);
+ $build->create_build_script;
+
+=head1 DESCRIPTION
+
+This module provides an example installer for C<libfoo>.
+It is used in testing L<Alien::Install>.
+
+=head1 SEE ALSO
+
+=over 4
+
+=item L<Alien::Install>
+
+=back
+
+=cut
+
 config
   name             => 'foo',
   versions_url     => 'http://dist.wdlabs.com/',

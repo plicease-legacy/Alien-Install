@@ -96,8 +96,8 @@ Build.PL
  my $installer = eval { Alien::Libarchive::Installer->system_install };
  if($installer)
  {
-   $build_args{extra_compiler_flags} = $installer->cflags,
-   $build_args{extra_linker_flags}   = $installer->libs,
+   $build_args{extra_compiler_flags} = $installer->cflags;
+   $build_args{extra_linker_flags}   = $installer->libs;
  }
  
  my $build = Module::Build->new(%build_args);
