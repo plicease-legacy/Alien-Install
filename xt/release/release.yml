@@ -23,6 +23,9 @@ pod_spelling_system:
     - lzo
     - refactoring
     - libfoo
+    - alienize
+    - arounds
+    - reinstalling
 
 pod_coverage:
   skip: 0
