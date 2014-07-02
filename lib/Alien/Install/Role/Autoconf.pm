@@ -87,9 +87,9 @@ sub build_install
       },
     );
 
-    if($class->can('_config_libname'))
+    if($class->can('_config_name'))
     {
-      push @{ $flags{libs } }, '-l' . $class->_config_libname;
+      push @{ $flags{libs } }, '-l' . $class->_config_name;
     }
 
     $class->call_hooks('pre_instantiate', \%flags);

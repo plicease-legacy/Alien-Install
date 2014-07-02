@@ -9,6 +9,7 @@ use Alien::Install::Util;
 # VERSION
 
 config
+  name             => 'foo',
   versions_url     => 'http://dist.wdlabs.com/',
   versions_process => qr{libfoo-([0-9]+\.[0-9]{2})\.tar\.gz},
   fetch_url        => sub {
@@ -41,11 +42,6 @@ sub system_install
   die 'todo';
 }
 
-sub dlls
-{
-  die 'todo';
-}
-
 sub test_ffi_signature
 {
   require FFI::Raw;
@@ -58,6 +54,5 @@ sub test_ffi_version
   my(undef, $function) = @_;
   $function->();
 }
-
 
 1;

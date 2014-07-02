@@ -10,6 +10,7 @@ use Carp qw( carp );
 # VERSION
 
 config
+  name             => 'archive',
   versions_url     => 'http://www.libarchive.org/downloads/',
   versions_process => sub {
     my($content) = @_;
@@ -523,57 +524,6 @@ be used by L<FFI::Raw> or similar.
 =head2 version
 
 The version of libarchive
-
-=cut
-
-# TODO: move to Alien::Install::*
-
-sub dlls
-{
-  my($self, $prefix) = @_;
-  
-  $prefix = $self->{prefix} unless defined $prefix;
-  
-  unless(defined $self->{dlls} && defined $self->{dll_dir})
-  {
-    # Question: is this necessary in light of the better
-    # dll detection now done in system_install ?
-    if($^O eq 'cygwin')
-    {
-      # /usr/bin/cygarchive-13.dll
-      opendir my $dh, '/usr/bin';
-      $self->{dlls} = [grep /^cygarchive-[0-9]+.dll$/i, readdir $dh];
-      $self->{dll_dir} = [];
-      $prefix = '/usr/bin';
-      closedir $dh;
-    }
-    else
-    {
-      require DynaLoader;
-      $self->{libs} = [] unless defined $self->{libs};
-      $self->{libs} = [ $self->{libs} ] unless ref $self->{libs};
-      my $path = DynaLoader::dl_findfile(grep /^-l/, @{ $self->libs });
-      die "unable to find dynamic library" unless defined $path;
-      my($vol, $dirs, $file) = splitpath $path;
-      if($^O eq 'openbsd')
-      {
-        # on openbsd we get the .a file back, so have to scan
-        # for .so.#.# as there is no .so symlink
-        opendir(my $dh, $dirs);
-        $self->{dlls} = [grep /^libarchive.so/, readdir $dh];
-        closedir $dh;
-      }
-      else
-      {
-        $self->{dlls} = [ $file ];
-      }
-      $self->{dll_dir} = [];
-      $self->{prefix} = $prefix = catpath($vol, $dirs);
-    }
-  }
-  
-  map { catfile $prefix, @{ $self->{dll_dir} }, $_  } @{ $self->{dlls} };
-}
 
 =head1 INSTANCE METHODS
 

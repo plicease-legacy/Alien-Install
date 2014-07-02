@@ -39,6 +39,9 @@ package
 use Alien::Install::Util;
 use Role::Tiny::With;
 
+config
+  name => 'foo';
+
 with qw(
   Alien::Install::Role::FooRole1
   Alien::Install::Role::FooRole2

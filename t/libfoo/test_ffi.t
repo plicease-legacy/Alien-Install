@@ -5,6 +5,7 @@ use Test::More;
 use Alien::Install::Example::Libfoo::Installer;
 use DynaLoader;
 use File::Spec;
+use File::Temp qw( tempdir );
 
 my $prefix = $ENV{ALIEN_LIBFOO_PREFIX} || tempdir( CLEANUP => 1);
 
@@ -17,8 +18,6 @@ plan skip_all => 'test requires FFI::Raw'
   unless eval { require FFI::Raw };
 plan skip_all => 'test requires dynamic libfoo'
   unless defined DynaLoader::dl_findfile('-lfoo');
-
-plan skip_all => 'TODO';
 
 plan tests => 1;
 

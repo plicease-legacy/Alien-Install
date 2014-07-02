@@ -14,6 +14,7 @@ requires 'extract';
 requires 'chdir_source';
 requires 'test_compile_run';
 requires 'test_ffi';
+requires '_config_name';
 
 my $build_requires = \%Alien::Install::Util::build_requires;
 
@@ -125,5 +126,53 @@ sub error   { shift->{error}   }
 sub cflags  { shift->{cflags}  }
 sub libs    { shift->{libs}    }
 sub version { shift->{version} }
+
+sub dlls
+{
+  my($self, $prefix) = @_;
+  
+  my $name = $self->_config_name;
+  $prefix = $self->{prefix} unless defined $prefix;
+  
+  unless(defined $self->{dlls} && defined $self->{dll_dir})
+  {
+    # Question: is this necessary in light of the better
+    # dll detection now done in system_install ?
+    if($^O eq 'cygwin')
+    {
+      # /usr/bin/cyg<name>-0.dll
+      opendir my $dh, '/usr/bin';
+      $self->{dlls} = [grep /^cyg$name-[0-9]+.dll$/i, readdir $dh];
+      $self->{dll_dir} = [];
+      $prefix = '/usr/bin';
+      closedir $dh;
+    }
+    else
+    {
+      require DynaLoader;
+      $self->{libs} = [] unless defined $self->{libs};
+      $self->{libs} = [ $self->{libs} ] unless ref $self->{libs};
+      my $path = DynaLoader::dl_findfile(grep /^-l/, @{ $self->libs });
+      die "unable to find dynamic library" unless defined $path;
+      my($vol, $dirs, $file) = splitpath $path;
+      if($^O eq 'openbsd')
+      {
+        # on openbsd we get the .a file back, so have to scan
+        # for .so.#.# as there is no .so symlink
+        opendir(my $dh, $dirs);
+        $self->{dlls} = [grep /^lib$name.so/, readdir $dh];
+        closedir $dh;
+      }
+      else
+      {
+        $self->{dlls} = [ $file ];
+      }
+      $self->{dll_dir} = [];
+      $self->{prefix} = $prefix = catpath($vol, $dirs);
+    }
+  }
+  
+  map { catfile $prefix, @{ $self->{dll_dir} }, $_  } @{ $self->{dlls} };
+}
 
 1;

@@ -20,6 +20,9 @@ package
 use Alien::Install::Util;
 use Role::Tiny::With;
 
+config
+  name => 'foo';
+
 with
   'Alien::Install::Role::FooRole',
   'Alien::Install::Role::Installer';

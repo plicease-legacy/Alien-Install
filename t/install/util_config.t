@@ -8,8 +8,8 @@ package
 use Alien::Install::Util;
 
 config
-  'foo' => 'hi there',
-  'bar' => sub { $_[0] * 2 };
+  foo  => 'hi there',
+  bar  => sub { $_[0] * 2 };
 
 package
   main;
