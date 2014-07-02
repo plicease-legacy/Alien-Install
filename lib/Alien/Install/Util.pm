@@ -223,6 +223,16 @@ sub register_hook ($$)
   push @{ $hooks{$class}->{$name} }, $sub;
 }
 
+=head2 config
+
+ config name => 'value';
+
+Set a configuration key/value pair.  This
+required configurations vary depending on
+the roles your class is consuming.
+
+=cut
+
 sub config (@)
 {
   croak "requires even number of argumens"
