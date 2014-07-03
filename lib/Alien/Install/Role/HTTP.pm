@@ -11,12 +11,6 @@ use Alien::Install::Util;
 requires 'alien_config_versions_url';
 requires 'alien_config_versions_process';
 
-sub _version_sort
-{
-  shift; # $class
-  sort { $a <=> $b } @_;
-}
-
 sub versions
 {
   my($class) = @_;
@@ -29,18 +23,15 @@ sub versions
 
   my $process = $class->alien_config_versions_process;
   
-  my $sort = eval { $class->alien_config_versions_sort } || \&_version_sort;
-  
   if(ref($process) eq 'CODE')
   {
-    return $sort->($class, $process->($response->{content}));
+    return $process->($response->{content});
   }
   elsif(ref($process) eq 'Regexp')
   {
-    my %versions;
-    $versions{$1} = 1 while $response->{content} =~ /$process/g;
-    return $sort->($class, keys %versions);
-    
+    my @versions;
+    push @versions, $1 while $response->{content} =~ /$process/g;
+    return @versions;
   }
 }
 

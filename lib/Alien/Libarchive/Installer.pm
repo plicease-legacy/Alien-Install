@@ -18,13 +18,6 @@ config
     push @versions, "$1.$2.$3" while $content =~ /libarchive-([1-9][0-9]*)\.([0-9]+)\.([0-9]+)\.tar.gz/g;
     @versions;
   },
-  versions_sort    => sub {
-    shift; # $class
-    map { join '.', @$_ } 
-    sort { $a->[0] <=> $b->[0] || $a->[1] <=> $b->[1] || $a->[2] <=> $b->[2] } 
-    map { [split /\./, $_] }
-    @_;
-  },
   fetch_url        => sub {
     my(undef, $version) = @_;
     "http://www.libarchive.org/downloads/libarchive-$version.tar.gz";
@@ -73,6 +66,7 @@ if($^O eq 'MSWin32' && do { require Config; $Config::Config{cc} =~ /cl(\.exe)?$/
     Alien::Install::Role::CMake
     Alien::Install::Role::TestCompileRun
     Alien::Install::Role::TestFFI
+    Alien::Install::Role::VersionSortMultiple
   );
 }
 else
@@ -84,6 +78,7 @@ else
     Alien::Install::Role::Autoconf
     Alien::Install::Role::TestCompileRun
     Alien::Install::Role::TestFFI
+    Alien::Install::Role::VersionSortMultiple
   );
   
   register_build_requires 'PkgConfig'   => '0.07620' if $^O eq 'MSWin32';

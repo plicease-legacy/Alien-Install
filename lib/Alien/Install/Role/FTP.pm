@@ -11,47 +11,48 @@ use Carp qw( croak );
 
 requires 'alien_config_ftp';
 requires 'alien_config_name';
+register_build_requires 'Net::FTP' => 0;
 
-# host dir match
-
-sub versions
+sub _ftp
 {
-  my($class) = @_;
+  my($config) = @_;
   require Net::FTP;
-  
-  my $config = $class->alien_config_ftp;
   
   $config->{user}     ||= 'anonymous';
   $config->{password} ||= 'anonymous@';
   $config->{dir}      ||= '/';
   
   $config->{host}  || croak "requires config.ftp.host";
-  $config->{match} ||= do {
-    my $name = $class->alien_config_name;
-    qr{^lib$name-([0-9]+(\.[0-9]+)+)\.tar\.gz$},
-  };
-  
-  my $match = $config->{match};
   
   my $ftp = Net::FTP->new($config->{host}) || die "unable to connect to " . $config->{host};
   $ftp->login($config->{user}, $config->{password}) || die "unable to login to " . $config->{host};
+  $ftp->binary;
   $ftp->cwd($config->{dir}) || die "unable to change to " . $config->{dir};
-  
+  $ftp;
+}
+
+sub versions
+{
+  my($class) = @_;
+
+  my $ftp = _ftp($class->alien_config_ftp);
+
+  my $match = $class->alien_config_ftp->{match} || do {
+    my $name = $class->alien_config_name;
+    qr{^lib$name-([0-9]+(\.[0-9]+)+)\.tar\.gz$},
+  };
+
   my @list = 
     map { $_ =~ $match; $1 }
     grep { $_ =~ $match } $ftp->ls;
   
   $ftp->quit;
 
-  # TODO: needs to be sorted  
   @list;
 }
 
 sub fetch
 {
-
-=pod
-  
   my($class, %options) = @_;
   
   my $dir = $options{dir} || eval { require File::Temp; File::Temp::tempdir( CLEANUP => 1 ) };
@@ -63,14 +64,17 @@ sub fetch
     $versions[-1];
   };
 
-  require Net::FTP;  
-
-=cut
+  my $ftp = _ftp($class->alien_config_ftp);
   
-  require Net::FTP;
-  die 'todo';
-}
+  my $filename = "lib" . $class->alien_config_name . "-$version.tar.gz";
+  
+  $ftp->get($filename, catfile($dir, $filename)) || die "unable to get $filename";
+  
+  $filename = catfile($dir, $filename);
+  
+  $ftp->quit;
 
-register_build_requires 'Net::FTP' => 0;
+  wantarray ? ($filename, $version) : $filename;
+}
 
 1;

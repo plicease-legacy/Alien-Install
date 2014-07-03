@@ -38,6 +38,7 @@ with qw(
   Alien::Install::Role::Autoconf
   Alien::Install::Role::TestCompileRun
   Alien::Install::Role::TestFFI
+  Alien::Install::Role::VersionSortMultiple
 );
 
 1;

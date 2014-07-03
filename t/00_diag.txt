@@ -6,6 +6,7 @@ Archive::Ar
 Archive::Ar::Libarchive
 Archive::Tar
 Archive::Zip
+Class::Method::Modifiers
 ExtUtils::CBuilder
 FFI::Raw
 HTTP::Tiny
