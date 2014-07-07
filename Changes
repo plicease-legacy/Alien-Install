@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.08_07   2014-07-07 14:51:39 -0400
   - completed implementation for Alien::Libffi::Installer
   - cygwin fixes
 
