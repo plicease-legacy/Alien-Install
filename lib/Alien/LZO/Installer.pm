@@ -581,7 +581,7 @@ sub dlls
     {
       # /usr/bin/cyglzo2-2.dll
       opendir my $dh, '/usr/bin';
-      $self->{dlls} = [grep /^lzo2-[0-9]+.dll$/i, readdir $dh];
+      $self->{dlls} = [grep /^cyglzo2-[0-9]+.dll$/i, readdir $dh];
       $self->{dll_dir} = [];
       $prefix = '/usr/bin';
       closedir $dh;

@@ -2,6 +2,7 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
   - completed implementation for Alien::Libffi::Installer
+  - cygwin fixes
 
 0.08_06   2014-07-03 07:52:50 -0400
   - generic implementation for system_install function
