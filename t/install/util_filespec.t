@@ -32,7 +32,7 @@ is scalar @dir_path, 3, 'splitpath returns exactly three items for a dir';
 is $dir_path[2], '', 'file part for dir is empty string';
 unlike &catpath(@dir_path), qr{\\}, "does not contain backslash @dir_path";
 
-my $file2 = catpath($file_path[0], catdir(splitdir($file_path[1])), $file_path[2]);
+my $file2 = catpath($file_path[0], catdir('', splitdir($file_path[1])), $file_path[2]);
 unlike $file2, qr{\\}, "does not contain backslash: $file2";
 ok -r $file2, "is readable $file2";
 is slurp $file2, 'this is a test of the emergency File::Spec system', "content matches $file2";

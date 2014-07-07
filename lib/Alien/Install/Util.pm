@@ -74,7 +74,9 @@ sub splitpath ($;$)
 sub splitdir ($)
 {
   my($dirs) = @_;
-  File::Spec->splitdir($dirs);
+  my @d = File::Spec->splitdir($dirs);
+  shift @d;
+  @d;
 }
 
 =head2 rootdir

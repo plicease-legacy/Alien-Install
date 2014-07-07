@@ -10,7 +10,7 @@ BEGIN {
 }
 
 plan skip_all => 'requires libffi already installed'
-  unless check_lib( lib => 'ffi' );
+  unless check_lib( lib => 'ffi', header => 'ffi.h' );
 
 plan tests => 1;
 
