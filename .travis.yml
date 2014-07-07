@@ -9,6 +9,7 @@ install:
   - cpanm -n Test::CPAN::Changes Test::EOL Test::Fixme Test::NoTabs Test::Pod::Spelling::CommonMistakes Test::Spelling Test::Strict Test::Version Test::Vars || true
   - cpanm -n Devel::CheckLib AnyEvent::Open3::Simple HTTP::Tiny
   - cpanm FFI::Raw -n || true
+  - perl helper/travis.pl
 
 perl:
   - "5.8"
@@ -21,3 +22,5 @@ perl:
 script:
   - dzil test -v
 
+env:
+  - ALIEN_LIBFOO_PREFIX=$HOME/opt/libfoo/1.00
